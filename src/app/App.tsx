@@ -9,6 +9,7 @@ import stampBackground from "../imports/Group14/a5d8baab0831cfa2757657bd88f21c28
 import checkmarkImage from "../imports/Group14/fbbaa6988c04316137f45b59292eef79b1052ec1.png";
 import trashIcon from "../imports/ConfirmReset-2/28a6ebfb11ad8956bc5f28462116e5f48e177f09.png";
 import medalImage from "../imports/CompletedCard/8362ac86e1d54d5cbce2a8f24381508d57275961.png";
+import cheers1Image from "../imports/HappyNewYear/32babbf94dfe1f4a89a87957ee9cd1bab158913a.png";
 
 type Mode = "interactive" | "editing";
 
@@ -128,9 +129,14 @@ function generateRandomCard(): string[] {
   return card;
 }
 
-function SparkleIcon() {
+function SparkleIcon({ className, size = 22.75 }: { className?: string; size?: number }) {
   return (
-    <img src={sparkleImage} alt="sparkle" className="w-[22.75px] h-[22.75px]" />
+    <img
+      src={sparkleImage}
+      alt="sparkle"
+      className={className}
+      style={{ width: size, height: size }}
+    />
   );
 }
 
@@ -150,9 +156,9 @@ function FlowerIcon() {
   );
 }
 
-function EditIcon() {
+function EditIcon({ size = 10 }: { size?: number }) {
   return (
-    <svg className="w-2.5 h-2.5" fill="none" preserveAspectRatio="none" viewBox="0 0 10 10">
+    <svg style={{ width: size, height: size }} fill="none" preserveAspectRatio="none" viewBox="0 0 10 10">
       <g>
         <path d="M5 8.33333H8.75" stroke="#657652" strokeLinecap="round" strokeLinejoin="round" />
         <path d={svgPaths.p750e400} stroke="#657652" strokeLinecap="round" strokeLinejoin="round" />
@@ -161,9 +167,9 @@ function EditIcon() {
   );
 }
 
-function ExportIcon({ color = "#657652" }: { color?: string }) {
+function ExportIcon({ color = "#657652", size = 10 }: { color?: string; size?: number }) {
   return (
-    <svg className="w-2.5 h-2.5" fill="none" preserveAspectRatio="none" viewBox="0 0 10 10">
+    <svg style={{ width: size, height: size }} fill="none" preserveAspectRatio="none" viewBox="0 0 10 10">
       <g clipPath="url(#clip0_12_1324)">
         <path d={svgPaths.p1ab95b80} stroke={color} strokeLinecap="round" strokeLinejoin="round" />
         <path d={svgPaths.p1f22680} stroke={color} strokeLinecap="round" strokeLinejoin="round" />
@@ -178,9 +184,10 @@ function ExportIcon({ color = "#657652" }: { color?: string }) {
   );
 }
 
-function ImageIcon() {
+function ImageIcon({ size = 10 }: { size?: number }) {
+  const h = Math.round(size * 1.33);
   return (
-    <div className="h-4 relative shrink-0 w-3">
+    <div className="relative shrink-0" style={{ width: size, height: h }}>
       <svg className="absolute block inset-0 size-full" fill="none" preserveAspectRatio="none" viewBox="0 0 12 16">
         <g>
           <rect x="1.5" y="1.5" width="9" height="13" rx="1" ry="1" stroke="#fefdf7" strokeWidth="0.987" />
@@ -192,9 +199,10 @@ function ImageIcon() {
   );
 }
 
-function PdfIcon() {
+function PdfIcon({ size = 10 }: { size?: number }) {
+  const h = Math.round(size * 1.5);
   return (
-    <div className="h-[18px] relative shrink-0 w-3">
+    <div className="relative shrink-0" style={{ width: size, height: h }}>
       <svg className="absolute block inset-0 size-full" fill="none" preserveAspectRatio="none" viewBox="0 0 12 18">
         <g>
           <path d="M7 1H3a1 1 0 0 0-1 1v14a1 1 0 0 0 1 1h6a1 1 0 0 0 1-1V5z" stroke="#fefdf7" strokeWidth="0.898" />
@@ -327,6 +335,132 @@ function ConfettiCanvas({ active }: { active: boolean }) {
   );
 }
 
+function FireworksCanvas({ active }: { active: boolean }) {
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+  const rafRef = useRef<number>(0);
+
+  useEffect(() => {
+    if (!active) return;
+
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return;
+
+    const W = window.innerWidth;
+    const H = window.innerHeight;
+    canvas.width = W;
+    canvas.height = H;
+
+    const COLORS = ["#F4D892", "#C0B05B", "#657652", "#F2B6A3", "#E89C73", "#E36559", "#E5E9EB", "#94BEBB", "#23617E"];
+    const DURATION = 7000;
+
+    interface FWParticle {
+      x: number; y: number;
+      vx: number; vy: number;
+      color: string; radius: number;
+      born: number; maxLife: number;
+      trail: Array<{ x: number; y: number }>;
+    }
+
+    const particles: FWParticle[] = [];
+
+    const addBurst = (bx: number, by: number, delay: number) => {
+      const count = 32 + Math.floor(Math.random() * 16);
+      const baseColor = COLORS[Math.floor(Math.random() * COLORS.length)];
+      for (let i = 0; i < count; i++) {
+        const angle = (i / count) * Math.PI * 2;
+        const speed = 2.5 + Math.random() * 4;
+        particles.push({
+          x: bx, y: by,
+          vx: Math.cos(angle) * speed,
+          vy: Math.sin(angle) * speed,
+          color: Math.random() < 0.4 ? COLORS[Math.floor(Math.random() * COLORS.length)] : baseColor,
+          radius: 1.5 + Math.random() * 2,
+          born: delay,
+          maxLife: 1400 + Math.random() * 800,
+          trail: [],
+        });
+      }
+    };
+
+    // Staggered bursts across the screen
+    addBurst(W * 0.25, H * 0.25, 0);
+    addBurst(W * 0.75, H * 0.2, 600);
+    addBurst(W * 0.5, H * 0.15, 1200);
+    addBurst(W * 0.2, H * 0.35, 1800);
+    addBurst(W * 0.8, H * 0.3, 2400);
+    addBurst(W * 0.5, H * 0.3, 3200);
+
+    const start = performance.now();
+
+    const animate = (now: number) => {
+      ctx.clearRect(0, 0, W, H);
+      const elapsed = now - start;
+      const t = elapsed / DURATION;
+
+      let anyAlive = false;
+      for (const p of particles) {
+        const age = elapsed - p.born;
+        if (age < 0) { anyAlive = true; continue; }
+
+        const life = age / p.maxLife;
+        if (life > 1) continue;
+        anyAlive = true;
+
+        p.x += p.vx;
+        p.y += p.vy;
+        p.vy += 0.06;
+        p.vx *= 0.98;
+
+        // Trail
+        p.trail.push({ x: p.x, y: p.y });
+        if (p.trail.length > 5) p.trail.shift();
+
+        const alpha = Math.max(0, 1 - life * 1.1);
+
+        // Draw trail
+        if (p.trail.length > 1) {
+          ctx.save();
+          ctx.strokeStyle = p.color;
+          ctx.lineWidth = p.radius * 0.8;
+          ctx.lineCap = "round";
+          ctx.globalAlpha = alpha * 0.3;
+          ctx.beginPath();
+          ctx.moveTo(p.trail[0].x, p.trail[0].y);
+          for (const pt of p.trail) ctx.lineTo(pt.x, pt.y);
+          ctx.stroke();
+          ctx.restore();
+        }
+
+        // Draw particle
+        ctx.save();
+        ctx.globalAlpha = alpha;
+        ctx.fillStyle = p.color;
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, p.radius, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.restore();
+      }
+
+      if (anyAlive && t < 1.3) rafRef.current = requestAnimationFrame(animate);
+    };
+
+    rafRef.current = requestAnimationFrame(animate);
+    return () => cancelAnimationFrame(rafRef.current);
+  }, [active]);
+
+  if (!active) return null;
+
+  return (
+    <canvas
+      ref={canvasRef}
+      className="fixed inset-0 pointer-events-none"
+      style={{ zIndex: 54 }}
+    />
+  );
+}
+
 function CloseIcon() {
   return (
     <svg className="w-4 h-4" fill="none" viewBox="0 0 16 16" stroke="#c0b05b" strokeWidth="1.67" strokeLinecap="round">
@@ -336,7 +470,7 @@ function CloseIcon() {
   );
 }
 
-function Stamp({ date, rotation }: { date: string; rotation: number }) {
+function Stamp({ date, rotation, scale = 1 }: { date: string; rotation: number; scale?: number }) {
   return (
     <div
       className="absolute inset-0 flex items-center justify-center pointer-events-none z-10 animate-stamp-bounce"
@@ -345,7 +479,7 @@ function Stamp({ date, rotation }: { date: string; rotation: number }) {
         transform: `rotate(${rotation}deg)`
       } as React.CSSProperties}
     >
-      <div className="opacity-90 relative w-[42px] h-[42px]">
+      <div className="opacity-90 relative w-[42px] h-[42px]" style={{ transform: scale !== 1 ? `scale(${scale})` : undefined }}>
         <div className="absolute left-0 top-0 w-[42px] h-[42px]">
           <img alt="" className="absolute inset-0 max-w-none object-cover pointer-events-none size-full" src={stampBackground} />
         </div>
@@ -391,47 +525,84 @@ function msUntilNewYear(): number {
   return nextJan1.getTime() - now.getTime();
 }
 
-function loadResolutions(): string[] {
+function getInitialAppState() {
   const currentYear = getCurrentYear();
-  try {
-    const storedYear = localStorage.getItem(STORAGE_KEY_YEAR);
-    if (storedYear && parseInt(storedYear) === currentYear) {
+  const storedYearStr = localStorage.getItem(STORAGE_KEY_YEAR);
+  const storedYear = storedYearStr ? parseInt(storedYearStr) : null;
+
+  const isSimulating = new URLSearchParams(window.location.search).get("simulate") === "newyear";
+  const isNewYear = isSimulating || (storedYear !== null && storedYear !== currentYear);
+
+  const readResolutions = (): string[] | null => {
+    try {
       const raw = localStorage.getItem(STORAGE_KEY_RESOLUTIONS);
       if (raw) {
         const parsed = JSON.parse(raw);
         if (Array.isArray(parsed) && parsed.length === 25) return parsed;
       }
-    }
-  } catch {}
-  const newCard = generateRandomCard();
-  try {
-    localStorage.setItem(STORAGE_KEY_RESOLUTIONS, JSON.stringify(newCard));
-    localStorage.setItem(STORAGE_KEY_YEAR, String(currentYear));
-    localStorage.removeItem(STORAGE_KEY_COMPLETED);
-  } catch {}
-  return newCard;
-}
+    } catch {}
+    return null;
+  };
 
-function loadCompleted(): Map<number, CompletedSquare> {
-  try {
-    const storedYear = localStorage.getItem(STORAGE_KEY_YEAR);
-    if (storedYear && parseInt(storedYear) === getCurrentYear()) {
+  const readCompleted = (): Map<number, CompletedSquare> => {
+    try {
       const raw = localStorage.getItem(STORAGE_KEY_COMPLETED);
       if (raw) {
         const entries: [number, CompletedSquare][] = JSON.parse(raw);
         return new Map(entries);
       }
-    }
-  } catch {}
-  return new Map();
+    } catch {}
+    return new Map();
+  };
+
+  if (isNewYear) {
+    // Keep the old card in state so it's visible behind the popup
+    const resolutions = readResolutions() ?? generateRandomCard();
+    const completed = readCompleted();
+    return { resolutions, completed, showNewYearModal: true, currentYear };
+  }
+
+  // Normal load — year matches or first launch
+  const stored = readResolutions();
+  const resolutions = (storedYear === currentYear && stored) ? stored : generateRandomCard();
+  const completed = storedYear === currentYear ? readCompleted() : new Map<number, CompletedSquare>();
+
+  if (!stored || storedYear !== currentYear) {
+    try {
+      localStorage.setItem(STORAGE_KEY_RESOLUTIONS, JSON.stringify(resolutions));
+      localStorage.setItem(STORAGE_KEY_YEAR, String(currentYear));
+      if (storedYear !== currentYear) localStorage.removeItem(STORAGE_KEY_COMPLETED);
+    } catch {}
+  }
+
+  return { resolutions, completed, showNewYearModal: false, currentYear };
 }
 
 export default function App() {
+  const initRef = useRef<ReturnType<typeof getInitialAppState> | null>(null);
+  if (!initRef.current) initRef.current = getInitialAppState();
+  const init = initRef.current;
+
+  const rootRef = useRef<HTMLDivElement>(null);
+  const [isTablet, setIsTablet] = useState(false);
+  const [isDesktop, setIsDesktop] = useState(true);
+  useEffect(() => {
+    const el = rootRef.current;
+    if (!el) return;
+    const observer = new ResizeObserver(([entry]) => {
+      const w = entry.contentRect.width;
+      setIsTablet(w >= 600);
+      setIsDesktop(w >= 800);
+    });
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, []);
+
   const [mode, setMode] = useState<Mode>("interactive");
-  const [resolutions, setResolutions] = useState<string[]>(loadResolutions);
+  const [resolutions, setResolutions] = useState<string[]>(() => init.resolutions);
   const [editingIndex, setEditingIndex] = useState<number | null>(null);
   const [editValue, setEditValue] = useState("");
-  const [completed, setCompleted] = useState<Map<number, CompletedSquare>>(loadCompleted);
+  const [completed, setCompleted] = useState<Map<number, CompletedSquare>>(() => init.completed);
   const [showExportModal, setShowExportModal] = useState(false);
   const [showResetConfirm, setShowResetConfirm] = useState(false);
   const [showIncompleteWarning, setShowIncompleteWarning] = useState(false);
@@ -439,23 +610,15 @@ export default function App() {
   const [showGenerateConfirm, setShowGenerateConfirm] = useState(false);
   const [showChecklistPreview, setShowChecklistPreview] = useState(false);
   const [exportPreviewPage, setExportPreviewPage] = useState(1);
-  const [currentYear, setCurrentYear] = useState(getCurrentYear);
+  const [currentYear, setCurrentYear] = useState(() => init.currentYear);
+  const [showNewYearModal, setShowNewYearModal] = useState(() => init.showNewYearModal);
 
-  // Reset card automatically at midnight on January 1st
+
+  // Show New Year popup automatically at midnight on January 1st
   useEffect(() => {
     const ms = msUntilNewYear();
     const timer = setTimeout(() => {
-      const newCard = generateRandomCard();
-      const year = getCurrentYear();
-      try {
-        localStorage.setItem(STORAGE_KEY_RESOLUTIONS, JSON.stringify(newCard));
-        localStorage.setItem(STORAGE_KEY_YEAR, String(year));
-        localStorage.removeItem(STORAGE_KEY_COMPLETED);
-      } catch {}
-      setResolutions(newCard);
-      setCompleted(new Map());
-      setCurrentYear(year);
-      setMode("interactive");
+      setShowNewYearModal(true);
     }, ms);
     return () => clearTimeout(timer);
   }, [currentYear]);
@@ -526,6 +689,38 @@ export default function App() {
     setCompleted(new Map());
     setShowGenerateConfirm(false);
     setMode("interactive");
+  };
+
+  const handleNewYearBegin = async () => {
+    const oldYear = parseInt(localStorage.getItem(STORAGE_KEY_YEAR) ?? String(currentYear - 1));
+
+    const dl = (c: HTMLCanvasElement, name: string) => {
+      const a = document.createElement("a");
+      a.download = name;
+      a.href = c.toDataURL();
+      a.click();
+    };
+
+    const cardCanvas = await generateCanvas();
+    if (cardCanvas) {
+      dl(cardCanvas, `resolution-bingo-${oldYear}-card.png`);
+      generateChecklistCanvas().then(cl => setTimeout(() => dl(cl, `resolution-bingo-${oldYear}-checklist.png`), 300));
+    } else {
+      generateChecklistCanvas().then(cl => dl(cl, `resolution-bingo-${oldYear}-checklist.png`));
+    }
+
+    const newCard = generateRandomCard();
+    const newYear = getCurrentYear();
+    try {
+      localStorage.setItem(STORAGE_KEY_RESOLUTIONS, JSON.stringify(newCard));
+      localStorage.setItem(STORAGE_KEY_YEAR, String(newYear));
+      localStorage.removeItem(STORAGE_KEY_COMPLETED);
+    } catch {}
+    setResolutions(newCard);
+    setCompleted(new Map());
+    setCurrentYear(newYear);
+    setMode("interactive");
+    setShowNewYearModal(false);
   };
 
   const hasEmptySquares = () => {
@@ -671,8 +866,8 @@ export default function App() {
         const gapX = 8;
         const gapY = 8;
         const totalGridWidth = cellSize * gridSize + gapX * (gridSize - 1);
-        const startX = (canvas.width - totalGridWidth) / 2;
-        const startY = 312;
+        const startX = (880 - totalGridWidth) / 2;
+        const startY = 360;
         ctx.textBaseline = "middle";
 
         for (let row = 0; row < gridSize; row++) {
@@ -885,7 +1080,7 @@ export default function App() {
     const doneCount = items.filter(i => completed.has(i)).length;
     const pct = Math.round((doneCount / 24) * 100);
 
-    const progX = 60, progY = 330, progW = W - 120;
+    const progX = 60, progY = 370, progW = W - 120;
 
     ctx.textAlign = "left";
     ctx.fillStyle = "#2b2b23";
@@ -1038,138 +1233,160 @@ export default function App() {
     setShowExportModal(false);
   };
 
+  // Responsive icon sizes
+  const icoBtn   = isDesktop ? 14 : isTablet ? 12 : 10;
+  const icoClose = isDesktop ? 20 : isTablet ? 18 : 16;
+  // Responsive modal sizing helpers
+  const mFontSm  = isDesktop ? "14px" : isTablet ? "12px" : "10px";
+  const mFontMd  = isDesktop ? "16px" : isTablet ? "14px" : "12px";
+  const mFontLg  = isDesktop ? "20px" : isTablet ? "18px" : "16px";
+  const mMaxW    = isDesktop ? "320px" : isTablet ? "280px" : "248px";
+  const mIconSz  = isDesktop ? "90px"  : isTablet ? "80px"  : "70px";
+  const mPadding = isDesktop ? "32px"  : isTablet ? "28px"  : "24px";
+
   return (
-    <div className="bg-[#faf6f0] min-h-[606px] flex flex-col items-center justify-center pt-[59px] pb-[71px] px-3">
-      <div className="w-full max-w-[256px] flex flex-col gap-5">
+    <>
+    <div ref={rootRef} className="bg-[#faf6f0] h-screen max-w-[100vw] overflow-y-auto flex flex-col items-center pt-[59px] pb-5"
+      style={{ paddingLeft: "clamp(16px, calc(5vw - 2.75px), 64px)", paddingRight: "clamp(16px, calc(5vw - 2.75px), 64px)" }}>
+      <div className="w-full flex flex-col"
+        style={{ maxWidth: isDesktop ? "560px" : "400px", minHeight: "calc(100vh - 79px)" }}>
         {/* Header */}
-        <div className="flex flex-col gap-1">
+        <div className="flex flex-col gap-1 mb-3">
           <div className="flex flex-col items-center">
-            <p className="font-['Quicksand'] font-bold text-[16px] leading-[26px] text-[#c0b05b] mb-[-8px]">{currentYear}</p>
+            <p className="font-['Quicksand'] font-bold text-[#c0b05b] mb-[-8px] cursor-pointer select-none" style={{ fontSize: isDesktop ? "20px" : isTablet ? "18px" : "16px", lineHeight: "26px" }} onClick={() => setShowNewYearModal(true)}>{currentYear}</p>
             <div className="flex gap-2 items-center justify-center">
               <div className="-scale-y-100 rotate-180">
-                <SparkleIcon />
+                <SparkleIcon size={isDesktop ? 32 : isTablet ? 27 : 22.75} />
               </div>
-              <h1 className="font-['Caprasimo'] text-[45px] leading-[60px] text-[#e36559]">Bingo</h1>
-              <SparkleIcon />
+              <h1 className="font-['Caprasimo'] text-[#e36559]" style={{ fontSize: isDesktop ? "49px" : isTablet ? "47px" : "45px", lineHeight: "60px" }}>Bingo</h1>
+              <SparkleIcon size={isDesktop ? 32 : isTablet ? 27 : 22.75} />
             </div>
           </div>
-          <p className={`font-['Quicksand'] font-medium text-[10px] leading-[18px] text-center ${mode === "editing" ? "text-[#23617e]" : "text-[#657652]"}`}>
+          <p className={`font-['Quicksand'] font-semibold text-center ${mode === "editing" ? "text-[#23617e]" : "text-[#657652]"}`} style={{ fontSize: isDesktop ? "16px" : isTablet ? "14px" : "12px", lineHeight: "18px" }}>
             {mode === "editing"
               ? "Click any square to edit your goals"
               : "Click squares to mark them complete"}
           </p>
         </div>
 
-        {/* Grid */}
-        <div className="grid grid-cols-5 gap-x-[6px] gap-y-[8px] w-full">
-          {resolutions.map((resolution, index) => {
-            const isCenter = index === 12;
-            const completedData = completed.get(index);
+        {/* Grid — centered in the remaining space between header and footer */}
+        <div className="flex-1 flex items-center">
+          <div className="r-grid grid grid-cols-5 gap-[6px] w-full">
+            {resolutions.map((resolution, index) => {
+              const isCenter = index === 12;
+              const completedData = completed.get(index);
 
-            return (
-              <div
-                key={index}
-                className={`w-[46.4px] h-[46.4px] rounded-[4px] border border-[#f1e8d7] flex items-center justify-center p-[5px] relative ${
-                  isCenter ? "bg-transparent border-none" : "bg-[#fefdf7] cursor-pointer"
-                }`}
-                onClick={() => handleCellClick(index)}
-              >
-                {isCenter ? (
-                  <img src={starImage} alt="star" className="w-[32.5px] h-[32.5px]" />
-                ) : (
-                  <>
-                    <p className="font-['Quicksand'] font-semibold text-[7.5px] leading-[9px] text-[#2b2b23] text-center">
-                      {resolution}
-                    </p>
-                    {mode === "editing" && (
-                      <div className="absolute top-[4px] right-[4px] size-[6px] pointer-events-none">
-                        <svg className="absolute block inset-0 size-full" fill="none" preserveAspectRatio="none" viewBox="0 0 6 6">
-                          <g clipPath="url(#editClip)">
-                            <path d="M3 5H5.25" stroke="#94BEBB" strokeLinecap="round" strokeLinejoin="round" strokeWidth="0.5" />
-                            <path d="M4.094 0.9055C4.19352 0.805977 4.32851 0.750066 4.46925 0.750066C4.61 0.750066 4.74498 0.805977 4.8445 0.9055C4.94402 1.00502 4.99993 1.14 4.99993 1.28075C4.99993 1.4215 4.94402 1.55648 4.8445 1.656L1.842 4.65875C1.78252 4.71822 1.70901 4.76173 1.62825 4.78525L0.91025 4.99475C0.888738 5.00103 0.865935 5.0014 0.844228 4.99584C0.82252 4.99028 0.802707 4.97898 0.786862 4.96314C0.771017 4.94729 0.759722 4.92748 0.754161 4.90577C0.7486 4.88407 0.748976 4.86126 0.75525 4.83975L0.96475 4.12175C0.988305 4.04108 1.03181 3.96766 1.09125 3.90825L4.094 0.9055Z" stroke="#94BEBB" strokeLinecap="round" strokeLinejoin="round" strokeWidth="0.5" />
-                          </g>
-                          <defs>
-                            <clipPath id="editClip"><rect fill="white" height="6" width="6" /></clipPath>
-                          </defs>
-                        </svg>
-                      </div>
-                    )}
-                    {completedData && mode === "interactive" && (
-                      <Stamp date={completedData.date} rotation={completedData.rotation} />
-                    )}
-                  </>
-                )}
-              </div>
-            );
-          })}
-        </div>
+              return (
+                <div
+                  key={index}
+                  className={`r-cell aspect-square rounded-[4px] border border-[#f1e8d7] flex items-center justify-center p-[5px] relative ${
+                    isCenter ? "bg-transparent border-none" : "bg-[#fefdf7] cursor-pointer"
+                  }`}
+                  onClick={() => handleCellClick(index)}
+                >
+                  {isCenter ? (
+                    <img src={starImage} alt="star" className="h-auto" style={{ width: isDesktop ? "68%" : isTablet ? "62%" : "55%" }} />
+                  ) : (
+                    <>
+                      <p className="font-['Quicksand'] font-semibold text-[#2b2b23] text-center" style={{ fontSize: isDesktop ? "13px" : isTablet ? "11px" : "9px", lineHeight: isDesktop ? "15px" : isTablet ? "13px" : "11px" }}>
+                        {resolution}
+                      </p>
+                      {mode === "editing" && (
+                        <div className="r-edit-badge absolute top-[4px] right-[4px] pointer-events-none" style={{ width: isDesktop ? "14px" : isTablet ? "11px" : "7px", height: isDesktop ? "14px" : isTablet ? "11px" : "7px" }}>
+                          <svg className="absolute block inset-0 size-full" fill="none" preserveAspectRatio="none" viewBox="0 0 6 6">
+                            <g clipPath="url(#editClip)">
+                              <path d="M3 5H5.25" stroke="#94BEBB" strokeLinecap="round" strokeLinejoin="round" strokeWidth="0.5" />
+                              <path d="M4.094 0.9055C4.19352 0.805977 4.32851 0.750066 4.46925 0.750066C4.61 0.750066 4.74498 0.805977 4.8445 0.9055C4.94402 1.00502 4.99993 1.14 4.99993 1.28075C4.99993 1.4215 4.94402 1.55648 4.8445 1.656L1.842 4.65875C1.78252 4.71822 1.70901 4.76173 1.62825 4.78525L0.91025 4.99475C0.888738 5.00103 0.865935 5.0014 0.844228 4.99584C0.82252 4.99028 0.802707 4.97898 0.786862 4.96314C0.771017 4.94729 0.759722 4.92748 0.754161 4.90577C0.7486 4.88407 0.748976 4.86126 0.75525 4.83975L0.96475 4.12175C0.988305 4.04108 1.03181 3.96766 1.09125 3.90825L4.094 0.9055Z" stroke="#94BEBB" strokeLinecap="round" strokeLinejoin="round" strokeWidth="0.5" />
+                            </g>
+                            <defs>
+                              <clipPath id="editClip"><rect fill="white" height="6" width="6" /></clipPath>
+                            </defs>
+                          </svg>
+                        </div>
+                      )}
+                      {completedData && mode === "interactive" && (
+                        <Stamp date={completedData.date} rotation={completedData.rotation} scale={isDesktop ? 2.1 : isTablet ? 1.3 : 1} />
+                      )}
+                    </>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        </div>{/* end centering wrapper */}
 
         {/* Buttons */}
-        {mode === "interactive" ? (
-          <div className="flex flex-col gap-3 items-center w-full">
-            <button
-              onClick={toggleMode}
-              className="w-full border border-[#f1e8d7] rounded-full px-[14px] py-[6px] flex items-center justify-center gap-1"
+        <div className="pt-3 w-full">
+          <div className="relative w-full">
+            {/* Interactive mode — defines zone height */}
+            <div
+              className="r-btn-row flex flex-col gap-3"
+              style={{ visibility: mode === "interactive" ? "visible" : "hidden", pointerEvents: mode === "interactive" ? "auto" : "none", flexDirection: isDesktop ? "row" : "column", gap: isDesktop ? "20px" : "12px" }}
             >
-              <EditIcon />
-              <span className="font-['Quicksand'] font-semibold text-[10px] leading-[18px] text-[#657652]">Edit</span>
-            </button>
-            <button
-              onClick={() => { setShowExportModal(true); setExportPreviewPage(1); }}
-              className="w-full bg-[#657652] rounded-full px-[14px] py-[6px] flex items-center justify-center gap-1 hover:bg-[#576447] transition-colors"
+              <button
+                onClick={toggleMode}
+                className="r-btn w-full border border-[#f1e8d7] rounded-full px-[14px] py-[6px] flex items-center justify-center gap-1"
+              >
+                <EditIcon size={icoBtn} />
+                <span className="font-['Quicksand'] font-semibold text-[#657652]" style={{ fontSize: isDesktop ? "16px" : isTablet ? "14px" : "12px", lineHeight: "18px" }}>Edit</span>
+              </button>
+              <button
+                onClick={() => { setShowExportModal(true); setExportPreviewPage(1); }}
+                className="r-btn w-full bg-[#657652] rounded-full px-[14px] py-[6px] flex items-center justify-center gap-1 hover:bg-[#576447] transition-colors"
+              >
+                <ExportIcon color="#faf6f0" size={icoBtn} />
+                <span className="font-['Quicksand'] font-semibold text-[#faf6f0]" style={{ fontSize: isDesktop ? "16px" : isTablet ? "14px" : "12px", lineHeight: "18px" }}>Share</span>
+              </button>
+            </div>
+            {/* Edit mode — absolutely overlaid on the same zone */}
+            <div
+              className="r-btn-row absolute inset-0 flex flex-col gap-3"
+              style={{ visibility: mode === "editing" ? "visible" : "hidden", pointerEvents: mode === "editing" ? "auto" : "none", flexDirection: isDesktop ? "row" : "column", gap: isDesktop ? "20px" : "12px" }}
             >
-              <ExportIcon color="#faf6f0" />
-              <span className="font-['Quicksand'] font-semibold text-[10px] leading-[18px] text-[#faf6f0]">Share</span>
-            </button>
-          </div>
-        ) : (
-          <div className="flex flex-col gap-5 items-center w-full">
-            <div className="flex flex-col gap-3 items-center w-full">
               <button
                 onClick={handleShuffle}
-                className="w-full border border-[#f1e8d7] rounded-full px-[14px] py-[6px] flex items-center justify-center gap-1 hover:bg-[#f7f3ec] transition-colors"
+                className="r-btn w-full border border-[#f1e8d7] rounded-full px-[14px] py-[6px] flex items-center justify-center gap-1 hover:bg-[#f7f3ec] transition-colors"
               >
-                <svg className="size-[10px] shrink-0" viewBox="0 0 10 10" fill="none" strokeLinecap="round" strokeLinejoin="round" strokeWidth="0.9">
-                  {/* top crossing arrow: lower-left → upper-right */}
+                <svg className="shrink-0" style={{ width: icoBtn, height: icoBtn }} viewBox="0 0 10 10" fill="none" strokeLinecap="round" strokeLinejoin="round" strokeWidth="0.9">
                   <path d="M1 7 C4 7 6 3 9 3" stroke="#657652" />
                   <path d="M8 2 L9 3 L8 4" stroke="#657652" />
-                  {/* bottom crossing arrow: upper-left → lower-right */}
                   <path d="M1 3 C4 3 6 7 9 7" stroke="#657652" />
                   <path d="M8 6 L9 7 L8 8" stroke="#657652" />
                 </svg>
-                <span className="font-['Quicksand'] font-semibold text-[10px] leading-[18px] text-[#657652]">Shuffle</span>
+                <span className="font-['Quicksand'] font-semibold text-[#657652]" style={{ fontSize: isDesktop ? "16px" : isTablet ? "14px" : "12px", lineHeight: "18px" }}>Shuffle</span>
               </button>
               <button
                 onClick={handleSaveChanges}
-                className="w-full bg-[#657652] rounded-full px-[14px] py-[6px] flex items-center justify-center gap-1 hover:bg-[#576447] transition-colors"
+                className="r-btn w-full bg-[#657652] rounded-full px-[14px] py-[6px] flex items-center justify-center gap-1 hover:bg-[#576447] transition-colors"
               >
-                <svg className="size-[10px] shrink-0" viewBox="0 0 10 10" fill="none">
+                <svg className="shrink-0" style={{ width: icoBtn, height: icoBtn }} viewBox="0 0 10 10" fill="none">
                   <path d="M8.5 9H1.5C1.22 9 1 8.78 1 8.5V1.5C1 1.22 1.22 1 1.5 1H7L9 3V8.5C9 8.78 8.78 9 8.5 9Z" stroke="#fefdf7" strokeWidth="0.9" strokeLinecap="round" strokeLinejoin="round"/>
                   <rect x="3" y="1" width="4" height="2.5" rx="0.3" stroke="#fefdf7" strokeWidth="0.9"/>
                   <rect x="2" y="5.5" width="6" height="3.5" rx="0.3" stroke="#fefdf7" strokeWidth="0.9"/>
                 </svg>
-                <span className="font-['Quicksand'] font-semibold text-[10px] leading-[18px] text-[#fefdf7]">Save changes</span>
-              </button>
-            </div>
-            <div className="flex items-center justify-center gap-3">
-              <button
-                onClick={() => setShowResetConfirm(true)}
-                className="rounded-full px-[14px] py-[6px]"
-              >
-                <span className="font-['Quicksand'] font-semibold text-[10px] leading-[18px] text-[#e36559]">Reset card</span>
-              </button>
-              <span className="text-[#f1e8d7] select-none">|</span>
-              <button
-                onClick={() => setShowGenerateConfirm(true)}
-                className="rounded-full px-[14px] py-[6px]"
-              >
-                <span className="font-['Quicksand'] font-semibold text-[10px] leading-[18px] text-[#23617e]">New card</span>
+                <span className="font-['Quicksand'] font-semibold text-[#fefdf7]" style={{ fontSize: isDesktop ? "16px" : isTablet ? "14px" : "12px", lineHeight: "18px" }}>Save changes</span>
               </button>
             </div>
           </div>
-        )}
-        {/* Spacer matching Figma layout */}
-        <div className="h-[26px] shrink-0" />
+          {/* Secondary row — hidden in interactive mode to hold space */}
+          <div className="mt-4 flex items-center" style={{ visibility: mode === "editing" ? "visible" : "hidden", justifyContent: isDesktop ? "space-between" : "center", gap: isDesktop ? "20px" : "12px" }}>
+            <button
+              onClick={() => setShowResetConfirm(true)}
+              className="rounded-full px-[14px] py-[6px]"
+              style={{ pointerEvents: mode === "editing" ? "auto" : "none", flex: isDesktop ? "1" : undefined, textAlign: isDesktop ? "center" : undefined }}
+            >
+              <span className="font-['Quicksand'] font-semibold text-[#e36559]" style={{ fontSize: isDesktop ? "16px" : isTablet ? "14px" : "12px", lineHeight: "18px" }}>Reset card</span>
+            </button>
+            {!isDesktop && <span className="font-['Quicksand'] text-[12px] leading-[18px] text-[#f1e8d7] select-none">|</span>}
+            <button
+              onClick={() => setShowGenerateConfirm(true)}
+              className="rounded-full px-[14px] py-[6px]"
+              style={{ pointerEvents: mode === "editing" ? "auto" : "none", flex: isDesktop ? "1" : undefined, textAlign: isDesktop ? "center" : undefined }}
+            >
+              <span className="font-['Quicksand'] font-semibold text-[#23617e]" style={{ fontSize: isDesktop ? "16px" : isTablet ? "14px" : "12px", lineHeight: "18px" }}>New card</span>
+            </button>
+          </div>
+        </div>
       </div>
 
       {/* Edit Modal */}
@@ -1179,7 +1396,8 @@ export default function App() {
           onClick={() => setEditingIndex(null)}
         >
           <motion.div
-            className="bg-white rounded-[14px] p-6 w-full max-w-[248px] relative"
+            className="bg-white rounded-[14px] w-full relative"
+            style={{ padding: mPadding, maxWidth: mMaxW }}
             onClick={(e) => e.stopPropagation()}
             initial={{ scale: 0.88, opacity: 0, y: 12 }}
             animate={{ scale: 1, opacity: 1, y: 0 }}
@@ -1189,10 +1407,10 @@ export default function App() {
               onClick={() => setEditingIndex(null)}
               className="absolute top-[13px] right-[13px] text-[#c0b05b] hover:opacity-70 transition-opacity w-4 h-4"
             >
-              <CloseIcon />
+              <CloseIcon size={icoClose} />
             </button>
 
-            <h2 className="font-['Quicksand'] font-bold text-[16px] leading-[26px] text-[#2b2b23] text-center mb-[16px]">Edit Resolution</h2>
+            <h2 className="font-['Quicksand'] font-bold text-[#2b2b23] text-center mb-[16px]" style={{ fontSize: mFontLg, lineHeight: "26px" }}>Edit Resolution</h2>
 
             <div className="flex flex-col gap-[5px] items-end mb-[16px]">
               <textarea
@@ -1207,10 +1425,11 @@ export default function App() {
                   }
                 }}
                 autoFocus
-                className="w-full h-[120px] px-[16px] py-[12px] font-['Quicksand'] font-medium text-[16px] leading-[26px] text-[#2b2b23] border-[1.5px] border-[#f1e8d7] rounded-[10px] focus:border-[#657652] focus:outline-none resize-none"
+                className="w-full h-[120px] px-[16px] py-[12px] font-['Quicksand'] font-medium text-[#2b2b23] border-[1.5px] border-[#f1e8d7] rounded-[10px] focus:border-[#657652] focus:outline-none resize-none"
+                style={{ fontSize: mFontLg, lineHeight: "26px" }}
                 placeholder="Enter your resolution..."
               />
-              <span className="font-['Quicksand'] font-semibold text-[10px] leading-[18px] text-[#94bebb]">
+              <span className="font-['Quicksand'] font-semibold text-[#94bebb]" style={{ fontSize: mFontSm, lineHeight: "18px" }}>
                 {editValue.length}/50 characters
               </span>
             </div>
@@ -1218,7 +1437,8 @@ export default function App() {
             <div className="flex items-center justify-between">
               <button
                 onClick={() => setEditingIndex(null)}
-                className="px-[14px] py-[6px] font-['Quicksand'] font-semibold text-[12px] leading-[20px] text-[#c0b05b]"
+                className="px-[14px] py-[6px] font-['Quicksand'] font-semibold text-[#c0b05b]"
+                style={{ fontSize: mFontMd, lineHeight: "20px" }}
               >
                 Cancel
               </button>
@@ -1229,7 +1449,7 @@ export default function App() {
                 <svg className="size-[11px] shrink-0" viewBox="0 0 11 11" fill="none">
                   <path d="M1.5 5.5L4.5 8.5L9.5 2.5" stroke="#fefdf7" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"/>
                 </svg>
-                <span className="font-['Quicksand'] font-semibold text-[12px] leading-[20px] text-[#fefdf7]">Done</span>
+                <span className="font-['Quicksand'] font-semibold text-[#fefdf7]" style={{ fontSize: mFontMd, lineHeight: "20px" }}>Done</span>
               </button>
             </div>
           </motion.div>
@@ -1243,7 +1463,8 @@ export default function App() {
           onClick={() => setShowExportModal(false)}
         >
           <motion.div
-            className="bg-white rounded-[14px] p-6 w-full max-w-[280px] relative"
+            className="bg-white rounded-[14px] w-full relative"
+            style={{ padding: mPadding, maxWidth: isDesktop ? "360px" : isTablet ? "320px" : "280px" }}
             onClick={(e) => e.stopPropagation()}
             initial={{ scale: 0.88, opacity: 0, y: 12 }}
             animate={{ scale: 1, opacity: 1, y: 0 }}
@@ -1253,17 +1474,17 @@ export default function App() {
               onClick={() => setShowExportModal(false)}
               className="absolute top-[13px] right-[13px] text-[#c0b05b] hover:text-[#2b2b23] transition-colors"
             >
-              <CloseIcon />
+              <CloseIcon size={icoClose} />
             </button>
             <div className="mb-5">
-              <h2 className="text-[16px] leading-[26px] text-[#2b2b23] text-center font-['Quicksand'] font-bold">Share Bingo Card</h2>
+              <h2 className="text-[#2b2b23] text-center font-['Quicksand'] font-bold" style={{ fontSize: mFontLg, lineHeight: "26px" }}>Share Bingo Card</h2>
             </div>
 
             {/* Preview slideshow */}
             <div className="mb-5">
-              {/* Swipeable frame — dots overlaid inside */}
+              {/* Swipeable stage — pages float inside at correct aspect ratio */}
               <div
-                className="bg-[#faf6f0] overflow-hidden relative select-none cursor-grab active:cursor-grabbing w-full aspect-[11/15]"
+                className="relative overflow-hidden h-[310px] select-none cursor-grab active:cursor-grabbing bg-[#faf6f0]"
                 onTouchStart={(e) => { (e.currentTarget as HTMLDivElement).dataset.sx = String(e.touches[0].clientX); }}
                 onTouchEnd={(e) => {
                   const dx = e.changedTouches[0].clientX - parseFloat((e.currentTarget as HTMLDivElement).dataset.sx ?? "0");
@@ -1277,13 +1498,11 @@ export default function App() {
                   if (dx >  30) setExportPreviewPage(p => Math.max(1, p - 1));
                 }}
               >
-                {/* Sliding track */}
-                <div
-                  className="flex transition-transform duration-300 ease-in-out"
-                  style={{ transform: `translateX(${(exportPreviewPage - 1) * -100}%)` }}
-                >
                   {/* Page 1 — bingo card */}
-                  <div className="w-full shrink-0 p-6 flex flex-col items-center justify-center gap-[10px]">
+                  <div
+                    className="absolute top-0 h-[310px] w-[227px] bg-[#faf6f0] p-4 flex flex-col items-center justify-center gap-[10px] transition-transform duration-300 ease-in-out overflow-hidden"
+                    style={{ left: "50%", transform: exportPreviewPage === 1 ? "translateX(-50%)" : "translateX(calc(-50% - 200%))" }}
+                  >
                     <div className="h-[54px] relative shrink-0 w-[117.906px]">
                       <p className="absolute font-['Quicksand'] font-bold leading-[18px] left-[45.11px] top-0 text-[#c0b05b] text-[12px] whitespace-nowrap">{currentYear}</p>
                       <div className="absolute flex gap-[6px] h-[40px] items-center justify-center left-0 top-[14px] w-[117.906px]">
@@ -1345,7 +1564,10 @@ export default function App() {
                     const doneCount = items.filter(i => completed.has(i)).length;
                     const pct = Math.round((doneCount / 24) * 100);
                     return (
-                      <div className="w-full shrink-0 p-5 flex flex-col gap-[10px]">
+                      <div
+                        className="absolute top-0 h-[310px] w-[227px] bg-[#faf6f0] p-[14px] flex flex-col gap-[8px] transition-transform duration-300 ease-in-out overflow-hidden"
+                        style={{ left: "50%", transform: exportPreviewPage === 2 ? "translateX(-50%)" : "translateX(calc(-50% + 200%))" }}
+                      >
                         <div className="flex flex-col items-center gap-0">
                           <p className="font-['Quicksand'] font-bold text-[9px] leading-[13px] text-[#c0b05b]">{currentYear}</p>
                           <p className="font-['Caprasimo'] text-[18px] leading-[24px] text-[#e36559]">Bingo</p>
@@ -1392,7 +1614,6 @@ export default function App() {
                       </div>
                     );
                   })()}
-                </div>
 
                 {/* Dot indicators — overlaid on preview */}
                 <div className="absolute bottom-[10px] left-0 right-0 flex items-center justify-center gap-[5px] pointer-events-none">
@@ -1420,18 +1641,18 @@ export default function App() {
 
             {/* Export options */}
             <div className="flex justify-between mb-2">
-              <button onClick={handleExportImage} className="bg-[#657652] text-[#fefdf7] rounded-full px-[14px] py-[6px] font-['Quicksand'] font-semibold text-[12px] leading-[20px] flex items-center gap-1 hover:bg-[#576447] transition-colors">
-                <ImageIcon />
+              <button onClick={handleExportImage} className="bg-[#657652] text-[#fefdf7] rounded-full px-[14px] py-[6px] font-['Quicksand'] font-semibold flex items-center gap-1 hover:bg-[#576447] transition-colors" style={{ fontSize: mFontMd, lineHeight: "20px" }}>
+                <ImageIcon size={icoBtn} />
                 As image
               </button>
-              <button onClick={handleExportPDF} className="bg-[#657652] text-[#fefdf7] rounded-full px-[14px] py-[6px] font-['Quicksand'] font-semibold text-[12px] leading-[20px] flex items-center gap-1 hover:bg-[#576447] transition-colors">
-                <PdfIcon />
+              <button onClick={handleExportPDF} className="bg-[#657652] text-[#fefdf7] rounded-full px-[14px] py-[6px] font-['Quicksand'] font-semibold flex items-center gap-1 hover:bg-[#576447] transition-colors" style={{ fontSize: mFontMd, lineHeight: "20px" }}>
+                <PdfIcon size={icoBtn} />
                 As PDF
               </button>
             </div>
 
             <div className="flex justify-center">
-              <button onClick={() => setShowExportModal(false)} className="text-[#c0b05b] hover:text-[#a09549] transition-colors font-['Quicksand'] font-semibold text-[12px] leading-[20px] px-[14px] py-[6px]">
+              <button onClick={() => setShowExportModal(false)} className="text-[#c0b05b] hover:text-[#a09549] transition-colors font-['Quicksand'] font-semibold px-[14px] py-[6px]" style={{ fontSize: mFontMd, lineHeight: "20px" }}>
                 Cancel
               </button>
             </div>
@@ -1553,7 +1774,8 @@ export default function App() {
           onClick={() => setShowResetConfirm(false)}
         >
           <motion.div
-            className="bg-white rounded-[14px] w-full max-w-[248px] relative"
+            className="bg-white rounded-[14px] w-full relative"
+            style={{ maxWidth: mMaxW }}
             onClick={(e) => e.stopPropagation()}
             initial={{ scale: 0.88, opacity: 0, y: 12 }}
             animate={{ scale: 1, opacity: 1, y: 0 }}
@@ -1563,17 +1785,17 @@ export default function App() {
               onClick={() => setShowResetConfirm(false)}
               className="absolute top-[13px] right-[13px] text-[#c0b05b] hover:opacity-70 transition-opacity w-4 h-4"
             >
-              <CloseIcon />
+              <CloseIcon size={icoClose} />
             </button>
 
             {/* Title */}
             <div className="px-6 pt-6">
-              <h2 className="font-['Quicksand'] font-bold text-[16px] leading-[26px] text-[#2b2b23] text-center">Clear all prompts?</h2>
+              <h2 className="font-['Quicksand'] font-bold text-[#2b2b23] text-center" style={{ fontSize: mFontLg, lineHeight: "26px" }}>Clear all prompts?</h2>
             </div>
 
             {/* Content */}
             <div className="px-6 pt-[26px] flex flex-col items-center gap-[15px]">
-              <div className="overflow-clip relative shrink-0 size-[70px]">
+              <div className="overflow-clip relative shrink-0" style={{ width: mIconSz, height: mIconSz }}>
                 <img alt="" className="absolute block inset-0 max-w-none size-full" src={trashIcon} />
                 {/* SVG vector overlay 1 — vertical stroke from Figma */}
                 <div className="absolute inset-[78.62%_87.21%_10.64%_12.79%]">
@@ -1592,7 +1814,7 @@ export default function App() {
                   </div>
                 </div>
               </div>
-              <p className="font-['Quicksand'] font-semibold text-[12px] leading-[20px] text-[#2b2b23] text-center">
+              <p className="font-['Quicksand'] font-semibold text-[#2b2b23] text-center" style={{ fontSize: mFontMd, lineHeight: "20px" }}>
                 This will permanently erase your grid. <span className="font-bold">All progress will be lost.</span>
               </p>
             </div>
@@ -1601,7 +1823,8 @@ export default function App() {
             <div className="px-6 pt-[28px] pb-[24px] flex items-center justify-between">
               <button
                 onClick={() => setShowResetConfirm(false)}
-                className="px-[14px] py-[6px] font-['Quicksand'] font-semibold text-[12px] leading-[20px] text-[#c0b05b]"
+                className="px-[14px] py-[6px] font-['Quicksand'] font-semibold text-[#c0b05b]"
+                style={{ fontSize: mFontMd, lineHeight: "20px" }}
               >
                 Cancel
               </button>
@@ -1610,7 +1833,8 @@ export default function App() {
                   handleReset();
                   setShowResetConfirm(false);
                 }}
-                className="bg-[#e36559] rounded-full px-[14px] py-[6px] font-['Quicksand'] font-semibold text-[12px] leading-[20px] text-[#2b2b23] hover:bg-[#d65b50] transition-colors"
+                className="bg-[#e36559] rounded-full px-[14px] py-[6px] font-['Quicksand'] font-semibold text-[#2b2b23] hover:bg-[#d65b50] transition-colors"
+                style={{ fontSize: mFontMd, lineHeight: "20px" }}
               >
                 Clear all
               </button>
@@ -1626,7 +1850,8 @@ export default function App() {
           onClick={() => setShowGenerateConfirm(false)}
         >
           <motion.div
-            className="bg-white rounded-[14px] w-full max-w-[248px] relative"
+            className="bg-white rounded-[14px] w-full relative"
+            style={{ maxWidth: mMaxW }}
             onClick={(e) => e.stopPropagation()}
             initial={{ scale: 0.88, opacity: 0, y: 12 }}
             animate={{ scale: 1, opacity: 1, y: 0 }}
@@ -1636,20 +1861,20 @@ export default function App() {
               onClick={() => setShowGenerateConfirm(false)}
               className="absolute top-[13px] right-[13px] text-[#c0b05b] hover:opacity-70 transition-opacity w-4 h-4"
             >
-              <CloseIcon />
+              <CloseIcon size={icoClose} />
             </button>
 
             {/* Title */}
             <div className="px-6 pt-6">
-              <h2 className="font-['Quicksand'] font-bold text-[16px] leading-[26px] text-[#2b2b23] text-center">Generate a new card?</h2>
+              <h2 className="font-['Quicksand'] font-bold text-[#2b2b23] text-center" style={{ fontSize: mFontLg, lineHeight: "26px" }}>Generate a new card?</h2>
             </div>
 
             {/* Magic wand + body text */}
             <div className="px-6 pt-5 flex flex-col items-center gap-[15px]">
-              <div className="relative shrink-0 size-[70px]">
+              <div className="relative shrink-0" style={{ width: mIconSz, height: mIconSz }}>
                 <img alt="magic wand" className="absolute inset-0 max-w-none object-cover pointer-events-none size-full" src={magicWandImage} />
               </div>
-              <p className="font-['Quicksand'] font-semibold text-[12px] leading-[20px] text-[#2b2b23] text-center">
+              <p className="font-['Quicksand'] font-semibold text-[#2b2b23] text-center" style={{ fontSize: mFontMd, lineHeight: "20px" }}>
                 {"This will replace your current board with 24 randomly selected resolutions. "}
                 <span className="font-bold">All progress will be lost.</span>
               </p>
@@ -1659,13 +1884,15 @@ export default function App() {
             <div className="px-6 pt-[28px] pb-[24px] flex items-center justify-between">
               <button
                 onClick={() => setShowGenerateConfirm(false)}
-                className="px-[14px] py-[6px] font-['Quicksand'] font-semibold text-[12px] leading-[20px] text-[#c0b05b]"
+                className="px-[14px] py-[6px] font-['Quicksand'] font-semibold text-[#c0b05b]"
+                style={{ fontSize: mFontMd, lineHeight: "20px" }}
               >
                 Cancel
               </button>
               <button
                 onClick={handleGenerate}
-                className="bg-[#657652] rounded-full px-[14px] py-[6px] font-['Quicksand'] font-semibold text-[12px] leading-[20px] text-[#faf6f0] hover:bg-[#576447] transition-colors"
+                className="bg-[#657652] rounded-full px-[14px] py-[6px] font-['Quicksand'] font-semibold text-[#faf6f0] hover:bg-[#576447] transition-colors"
+                style={{ fontSize: mFontMd, lineHeight: "20px" }}
               >
                 Generate
               </button>
@@ -1681,7 +1908,8 @@ export default function App() {
           onClick={() => setShowIncompleteWarning(false)}
         >
           <motion.div
-            className="bg-white rounded-[14px] w-full max-w-[248px] relative"
+            className="bg-white rounded-[14px] w-full relative"
+            style={{ maxWidth: mMaxW }}
             onClick={(e) => e.stopPropagation()}
             initial={{ scale: 0.88, opacity: 0, y: 12 }}
             animate={{ scale: 1, opacity: 1, y: 0 }}
@@ -1691,17 +1919,17 @@ export default function App() {
               onClick={() => setShowIncompleteWarning(false)}
               className="absolute top-[13px] right-[13px] text-[#c0b05b] hover:opacity-70 transition-opacity w-4 h-4"
             >
-              <CloseIcon />
+              <CloseIcon size={icoClose} />
             </button>
 
             {/* Title */}
             <div className="px-6 pt-6">
-              <h2 className="font-['Quicksand'] font-bold text-[16px] leading-[26px] text-[#2b2b23] text-center">Incomplete bingo card</h2>
+              <h2 className="font-['Quicksand'] font-bold text-[#2b2b23] text-center" style={{ fontSize: mFontLg, lineHeight: "26px" }}>Incomplete bingo card</h2>
             </div>
 
             {/* Content */}
             <div className="px-6 pt-[26px] flex flex-col items-center gap-[15px]">
-              <svg className="size-[70px]" viewBox="0 0 70 70" fill="none" strokeLinecap="round" strokeLinejoin="round">
+              <svg style={{ width: mIconSz, height: mIconSz }} viewBox="0 0 70 70" fill="none" strokeLinecap="round" strokeLinejoin="round">
                 {/* Main arc — 240° clockwise from 10:30 (315°) to 6:30 (195°), r=26, center (35,35) */}
                 <path d="M17 17 A26 26 0 1 1 28 60" stroke="#F4D892" strokeWidth="4.5"/>
                 {/* Small arc 1 — lower-left, 217°→242° */}
@@ -1711,7 +1939,7 @@ export default function App() {
                 {/* Checkmark — smaller, centered, thicker */}
                 <path d="M24 35 L31 43 L46 26" stroke="#F4D892" strokeWidth="6"/>
               </svg>
-              <p className="font-['Quicksand'] font-semibold text-[12px] leading-[20px] text-[#2b2b23] text-center">
+              <p className="font-['Quicksand'] font-semibold text-[#2b2b23] text-center" style={{ fontSize: mFontMd, lineHeight: "20px" }}>
                 You still have some empty squares! Please fill in all the prompts before saving.
               </p>
             </div>
@@ -1720,9 +1948,55 @@ export default function App() {
             <div className="px-6 pt-[28px] pb-[24px] flex items-center">
               <button
                 onClick={() => setShowIncompleteWarning(false)}
-                className="w-full bg-[#657652] rounded-full px-[14px] py-[6px] font-['Quicksand'] font-semibold text-[12px] leading-[20px] text-[#fefdf7] hover:bg-[#576447] transition-colors"
+                className="w-full bg-[#657652] rounded-full px-[14px] py-[6px] font-['Quicksand'] font-semibold text-[#fefdf7] hover:bg-[#576447] transition-colors"
+                style={{ fontSize: mFontMd, lineHeight: "20px" }}
               >
                 Let's finish it!
+              </button>
+            </div>
+          </motion.div>
+        </div>
+      )}
+
+      {/* Fireworks + Happy New Year Modal */}
+      <FireworksCanvas active={showNewYearModal} />
+      {showNewYearModal && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
+          <motion.div
+            className="bg-white rounded-[14px] w-full relative"
+            style={{ maxWidth: mMaxW }}
+            onClick={(e) => e.stopPropagation()}
+            initial={{ scale: 0.88, opacity: 0, y: 12 }}
+            animate={{ scale: 1, opacity: 1, y: 0 }}
+            transition={{ type: "spring", stiffness: 380, damping: 20, mass: 0.7 }}
+          >
+            <button
+              onClick={() => setShowNewYearModal(false)}
+              className="absolute top-[13px] right-[13px] text-[#c0b05b] hover:opacity-70 transition-opacity w-4 h-4"
+            >
+              <CloseIcon size={icoClose} />
+            </button>
+
+            <div className="px-6 pt-6">
+              <h2 className="font-['Quicksand'] font-bold text-[#2b2b23] text-center" style={{ fontSize: mFontLg, lineHeight: "26px" }}>Happy New Year!</h2>
+            </div>
+
+            <div className="px-6 pt-[15px] flex flex-col items-center gap-[15px]">
+              <div className="relative shrink-0" style={{ width: mIconSz, height: mIconSz }}>
+                <img alt="cheers" className="absolute inset-0 max-w-none object-cover pointer-events-none size-full" src={cheers1Image} />
+              </div>
+              <p className="font-['Quicksand'] font-semibold text-[#2b2b23] text-center" style={{ fontSize: mFontMd, lineHeight: "20px" }}>
+                {"We'll save a snapshot of your old board to your device, then your new grid is ready to go!"}
+              </p>
+            </div>
+
+            <div className="px-6 pt-[20px] pb-[25px]">
+              <button
+                onClick={handleNewYearBegin}
+                className="w-full bg-[#657652] rounded-full px-[14px] py-[6px] font-['Quicksand'] font-semibold text-[#faf6f0] hover:bg-[#576447] transition-colors"
+                style={{ fontSize: mFontMd, lineHeight: "20px" }}
+              >
+                {"Let's Begin!"}
               </button>
             </div>
           </motion.div>
@@ -1739,7 +2013,8 @@ export default function App() {
           onClick={() => setShowCompletedCard(false)}
         >
           <motion.div
-            className="bg-white rounded-[14px] w-full max-w-[248px] relative"
+            className="bg-white rounded-[14px] w-full relative"
+            style={{ maxWidth: mMaxW }}
             onClick={(e) => e.stopPropagation()}
             initial={{ scale: 0.88, opacity: 0, y: 12 }}
             animate={{ scale: 1, opacity: 1, y: 0 }}
@@ -1749,20 +2024,20 @@ export default function App() {
               onClick={() => setShowCompletedCard(false)}
               className="absolute top-[13px] right-[13px] text-[#c0b05b] hover:opacity-70 transition-opacity w-4 h-4"
             >
-              <CloseIcon />
+              <CloseIcon size={icoClose} />
             </button>
 
             {/* Title */}
             <div className="px-6 pt-6">
-              <h2 className="font-['Quicksand'] font-bold text-[16px] leading-[26px] text-[#2b2b23] text-center">BINGO! Full House!</h2>
+              <h2 className="font-['Quicksand'] font-bold text-[#2b2b23] text-center" style={{ fontSize: mFontLg, lineHeight: "26px" }}>BINGO! Full House!</h2>
             </div>
 
             {/* Medal + body text */}
             <div className="px-6 pt-[26px] flex flex-col items-center gap-[15px]">
-              <div className="relative shrink-0 size-[70px]">
+              <div className="relative shrink-0" style={{ width: mIconSz, height: mIconSz }}>
                 <img alt="medal" className="absolute inset-0 max-w-none object-cover pointer-events-none size-full" src={medalImage} />
               </div>
-              <p className="font-['Quicksand'] font-semibold text-[12px] leading-[20px] text-[#2b2b23] text-center">
+              <p className="font-['Quicksand'] font-semibold text-[#2b2b23] text-center" style={{ fontSize: mFontMd, lineHeight: "20px" }}>
                 You did it! You crushed every single resolution on your board.
               </p>
             </div>
@@ -1773,13 +2048,14 @@ export default function App() {
                 onClick={() => { setShowCompletedCard(false); setShowExportModal(true); setExportPreviewPage(1); }}
                 className="w-full bg-[#657652] rounded-full px-[14px] py-[6px] flex items-center justify-center gap-1 hover:bg-[#576447] transition-colors"
               >
-                <ExportIcon color="#faf6f0" />
-                <span className="font-['Quicksand'] font-semibold text-[10px] leading-[18px] text-[#faf6f0]">Share Victory</span>
+                <ExportIcon color="#faf6f0" size={icoBtn} />
+                <span className="font-['Quicksand'] font-semibold text-[#faf6f0]" style={{ fontSize: mFontSm, lineHeight: "18px" }}>Share Victory</span>
               </button>
             </div>
           </motion.div>
         </div>
       )}
     </div>
+    </>
   );
 }
