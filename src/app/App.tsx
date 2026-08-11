@@ -7,7 +7,7 @@ import sparkleImage from "../imports/stars-1.png";
 import starImage from "../imports/star.png";
 import stampBackground from "../imports/Group14/a5d8baab0831cfa2757657bd88f21c281c592e58.png";
 import checkmarkImage from "../imports/Group14/fbbaa6988c04316137f45b59292eef79b1052ec1.png";
-import trashIcon from "../imports/ConfirmReset-2/28a6ebfb11ad8956bc5f28462116e5f48e177f09.png";
+import trashIcon from "../imports/ConfirmReset-3/61b75fdf868b1da311ee535cde3ac2897aed0d4e.png";
 import medalImage from "../imports/CompletedCard/8362ac86e1d54d5cbce2a8f24381508d57275961.png";
 import cheers1Image from "../imports/HappyNewYear/32babbf94dfe1f4a89a87957ee9cd1bab158913a.png";
 
@@ -514,6 +514,7 @@ interface CompletedSquare {
 const STORAGE_KEY_RESOLUTIONS = "bingo_resolutions";
 const STORAGE_KEY_COMPLETED = "bingo_completed";
 const STORAGE_KEY_YEAR = "bingo_year";
+const STORAGE_KEY_MODAL_SEEN = "bingo_newyear_modal_seen";
 
 function getCurrentYear() {
   return new Date().getFullYear();
@@ -531,7 +532,9 @@ function getInitialAppState() {
   const storedYear = storedYearStr ? parseInt(storedYearStr) : null;
 
   const isSimulating = new URLSearchParams(window.location.search).get("simulate") === "newyear";
-  const isNewYear = isSimulating || (storedYear !== null && storedYear !== currentYear);
+  const modalSeenYear = localStorage.getItem(STORAGE_KEY_MODAL_SEEN);
+  const modalAlreadySeen = modalSeenYear === String(currentYear);
+  const isNewYear = isSimulating || (!modalAlreadySeen && storedYear !== null && storedYear !== currentYear);
 
   const readResolutions = (): string[] | null => {
     try {
@@ -555,8 +558,19 @@ function getInitialAppState() {
     return new Map();
   };
 
-  if (isNewYear) {
+  if (isNewYear && !isSimulating) {
     // Keep the old card in state so it's visible behind the popup
+    const resolutions = readResolutions() ?? generateRandomCard();
+    const completed = readCompleted();
+    // Mark the modal as seen for this year immediately — prevents re-triggering on refresh
+    try {
+      localStorage.setItem(STORAGE_KEY_MODAL_SEEN, String(currentYear));
+      localStorage.setItem(STORAGE_KEY_YEAR, String(currentYear));
+    } catch {}
+    return { resolutions, completed, showNewYearModal: true, currentYear };
+  }
+
+  if (isSimulating) {
     const resolutions = readResolutions() ?? generateRandomCard();
     const completed = readCompleted();
     return { resolutions, completed, showNewYearModal: true, currentYear };
@@ -586,13 +600,16 @@ export default function App() {
   const rootRef = useRef<HTMLDivElement>(null);
   const [isTablet, setIsTablet] = useState(false);
   const [isDesktop, setIsDesktop] = useState(true);
+  const [isLandscape, setIsLandscape] = useState(false);
   useEffect(() => {
     const el = rootRef.current;
     if (!el) return;
     const observer = new ResizeObserver(([entry]) => {
       const w = entry.contentRect.width;
+      const h = entry.contentRect.height;
       setIsTablet(w >= 600);
       setIsDesktop(w >= 800);
+      setIsLandscape(w > h);
     });
     observer.observe(el);
     return () => observer.disconnect();
@@ -608,16 +625,22 @@ export default function App() {
   const [showIncompleteWarning, setShowIncompleteWarning] = useState(false);
   const [showCompletedCard, setShowCompletedCard] = useState(false);
   const [showGenerateConfirm, setShowGenerateConfirm] = useState(false);
+  const [showLineComplete, setShowLineComplete] = useState(false);
   const [showChecklistPreview, setShowChecklistPreview] = useState(false);
   const [exportPreviewPage, setExportPreviewPage] = useState(1);
   const [currentYear, setCurrentYear] = useState(() => init.currentYear);
   const [showNewYearModal, setShowNewYearModal] = useState(() => init.showNewYearModal);
 
 
-  // Show New Year popup automatically at midnight on January 1st
+  // Show New Year popup automatically at midnight on January 1st.
+  // Only arm the timer when within ~24 days of new year — setTimeout silently fires
+  // immediately if the delay exceeds the browser max (~2.1 billion ms / ~24 days).
   useEffect(() => {
     const ms = msUntilNewYear();
+    const MAX_SAFE_TIMEOUT = 2_000_000_000;
+    if (ms > MAX_SAFE_TIMEOUT) return;
     const timer = setTimeout(() => {
+      try { localStorage.removeItem(STORAGE_KEY_MODAL_SEEN); } catch {}
       setShowNewYearModal(true);
     }, ms);
     return () => clearTimeout(timer);
@@ -655,6 +678,14 @@ export default function App() {
     }
   };
 
+  const BINGO_LINES = [
+    [0,1,2,3,4],[5,6,7,8,9],[10,11,12,13,14],[15,16,17,18,19],[20,21,22,23,24],
+    [0,5,10,15,20],[1,6,11,16,21],[2,7,12,17,22],[3,8,13,18,23],[4,9,14,19,24],
+    [0,6,12,18,24],[4,8,12,16,20],
+  ];
+  const isLineComplete = (line: number[], map: Map<number, CompletedSquare>) =>
+    line.every(i => i === 12 || map.has(i));
+
   const toggleComplete = (index: number) => {
     const newCompleted = new Map(completed);
     if (newCompleted.has(index)) {
@@ -667,10 +698,16 @@ export default function App() {
       const dateString = `${day}/${month}/${year}`;
       const rotation = Math.random() * 30 - 15;
       newCompleted.set(index, { date: dateString, rotation });
-      // All 24 non-center squares stamped → show congratulations
-      const allDone = [0,1,2,3,4,5,6,7,8,9,10,11,13,14,15,16,17,18,19,20,21,22,23,24]
-        .every(i => i === index || newCompleted.has(i));
-      if (allDone) setShowCompletedCard(true);
+      const nonCenter = [0,1,2,3,4,5,6,7,8,9,10,11,13,14,15,16,17,18,19,20,21,22,23,24];
+      const allDone = nonCenter.every(i => newCompleted.has(i));
+      if (allDone) {
+        setShowCompletedCard(true);
+      } else {
+        const newLine = BINGO_LINES.some(
+          line => isLineComplete(line, newCompleted) && !isLineComplete(line, completed)
+        );
+        if (newLine) setShowLineComplete(true);
+      }
     }
     setCompleted(newCompleted);
   };
@@ -1233,27 +1270,29 @@ export default function App() {
     setShowExportModal(false);
   };
 
+  const isTabletPortrait = isTablet && !isLandscape;
+
   // Responsive icon sizes
   const icoBtn   = isDesktop ? 14 : isTablet ? 12 : 10;
   const icoClose = isDesktop ? 20 : isTablet ? 18 : 16;
   // Responsive modal sizing helpers
-  const mFontSm  = isDesktop ? "14px" : isTablet ? "12px" : "10px";
-  const mFontMd  = isDesktop ? "16px" : isTablet ? "14px" : "12px";
-  const mFontLg  = isDesktop ? "20px" : isTablet ? "18px" : "16px";
-  const mMaxW    = isDesktop ? "320px" : isTablet ? "280px" : "248px";
-  const mIconSz  = isDesktop ? "90px"  : isTablet ? "80px"  : "70px";
+  const mFontSm  = isDesktop ? "14px" : isTabletPortrait ? "16px" : isTablet ? "12px" : "10px";
+  const mFontMd  = isDesktop ? "16px" : isTabletPortrait ? "18px" : isTablet ? "14px" : "12px";
+  const mFontLg  = isDesktop ? "20px" : isTabletPortrait ? "22px" : isTablet ? "18px" : "16px";
+  const mMaxW    = isDesktop ? "320px" : isTabletPortrait ? "360px" : isTablet ? "280px" : "248px";
+  const mIconSz  = isDesktop ? "90px"  : isTabletPortrait ? "100px" : isTablet ? "80px"  : "70px";
   const mPadding = isDesktop ? "32px"  : isTablet ? "28px"  : "24px";
 
   return (
     <>
-    <div ref={rootRef} className="bg-[#faf6f0] h-screen max-w-[100vw] overflow-y-auto flex flex-col items-center pt-[59px] pb-5"
-      style={{ paddingLeft: "clamp(16px, calc(5vw - 2.75px), 64px)", paddingRight: "clamp(16px, calc(5vw - 2.75px), 64px)" }}>
+    <div ref={rootRef} className="bg-[#faf6f0] max-w-[100vw] flex flex-col items-center"
+      style={{ height: "100dvh", overflowY: isTablet ? "auto" : "hidden", paddingTop: isTabletPortrait ? "20px" : isTablet ? "59px" : "16px", paddingBottom: "20px", paddingLeft: "clamp(16px, calc(5vw - 2.75px), 64px)", paddingRight: "clamp(16px, calc(5vw - 2.75px), 64px)" }}>
       <div className="w-full flex flex-col"
-        style={{ maxWidth: isDesktop ? "560px" : "400px", minHeight: "calc(100vh - 79px)" }}>
+        style={{ maxWidth: isDesktop ? "560px" : isLandscape ? "380px" : "100%", height: isTabletPortrait ? "calc(100dvh - 40px)" : isTablet ? "calc(100dvh - 79px)" : "calc(100dvh - 36px)" }}>
         {/* Header */}
-        <div className="flex flex-col gap-1 mb-3">
+        <div className="flex flex-col gap-1" style={{ marginBottom: isTablet ? "12px" : "6px" }}>
           <div className="flex flex-col items-center">
-            <p className="font-['Quicksand'] font-bold text-[#c0b05b] mb-[-8px] cursor-pointer select-none" style={{ fontSize: isDesktop ? "20px" : isTablet ? "18px" : "16px", lineHeight: "26px" }} onClick={() => setShowNewYearModal(true)}>{currentYear}</p>
+            <p className="font-['Quicksand'] font-bold text-[#c0b05b] mb-[-8px]" style={{ fontSize: isDesktop ? "20px" : isTabletPortrait ? "22px" : isTablet ? "18px" : "16px", lineHeight: "26px" }}>{currentYear}</p>
             <div className="flex gap-2 items-center justify-center">
               <div className="-scale-y-100 rotate-180">
                 <SparkleIcon size={isDesktop ? 32 : isTablet ? 27 : 22.75} />
@@ -1262,7 +1301,7 @@ export default function App() {
               <SparkleIcon size={isDesktop ? 32 : isTablet ? 27 : 22.75} />
             </div>
           </div>
-          <p className={`font-['Quicksand'] font-semibold text-center ${mode === "editing" ? "text-[#23617e]" : "text-[#657652]"}`} style={{ fontSize: isDesktop ? "16px" : isTablet ? "14px" : "12px", lineHeight: "18px" }}>
+          <p className={`font-['Quicksand'] font-semibold text-center ${mode === "editing" ? "text-[#23617e]" : "text-[#657652]"}`} style={{ fontSize: isDesktop ? "16px" : isTabletPortrait ? "18px" : isTablet ? "14px" : "13px", lineHeight: "18px" }}>
             {mode === "editing"
               ? "Click any square to edit your goals"
               : "Click squares to mark them complete"}
@@ -1288,7 +1327,7 @@ export default function App() {
                     <img src={starImage} alt="star" className="h-auto" style={{ width: isDesktop ? "68%" : isTablet ? "62%" : "55%" }} />
                   ) : (
                     <>
-                      <p className="font-['Quicksand'] font-semibold text-[#2b2b23] text-center" style={{ fontSize: isDesktop ? "13px" : isTablet ? "11px" : "9px", lineHeight: isDesktop ? "15px" : isTablet ? "13px" : "11px" }}>
+                      <p className="font-['Quicksand'] font-semibold text-[#2b2b23] text-center" style={{ fontSize: isDesktop ? "13px" : isTabletPortrait ? "15px" : isTablet ? "11px" : "10px", lineHeight: isDesktop ? "15px" : isTabletPortrait ? "17px" : isTablet ? "13px" : "12px" }}>
                         {resolution}
                       </p>
                       {mode === "editing" && (
@@ -1305,7 +1344,7 @@ export default function App() {
                         </div>
                       )}
                       {completedData && mode === "interactive" && (
-                        <Stamp date={completedData.date} rotation={completedData.rotation} scale={isDesktop ? 2.1 : isTablet ? 1.3 : 1} />
+                        <Stamp date={completedData.date} rotation={completedData.rotation} scale={isDesktop ? 2.1 : isTabletPortrait ? 2.4 : isTablet ? 1.3 : 1.40} />
                       )}
                     </>
                   )}
@@ -1316,7 +1355,7 @@ export default function App() {
         </div>{/* end centering wrapper */}
 
         {/* Buttons */}
-        <div className="pt-3 w-full">
+        <div className="w-full" style={{ paddingTop: isTablet ? "12px" : "6px" }}>
           <div className="relative w-full">
             {/* Interactive mode — defines zone height */}
             <div
@@ -1328,14 +1367,14 @@ export default function App() {
                 className="r-btn w-full border border-[#f1e8d7] rounded-full px-[14px] py-[6px] flex items-center justify-center gap-1"
               >
                 <EditIcon size={icoBtn} />
-                <span className="font-['Quicksand'] font-semibold text-[#657652]" style={{ fontSize: isDesktop ? "16px" : isTablet ? "14px" : "12px", lineHeight: "18px" }}>Edit</span>
+                <span className="font-['Quicksand'] font-semibold text-[#657652]" style={{ fontSize: isDesktop ? "16px" : isTabletPortrait ? "18px" : isTablet ? "14px" : "13px", lineHeight: "18px" }}>Edit</span>
               </button>
               <button
                 onClick={() => { setShowExportModal(true); setExportPreviewPage(1); }}
                 className="r-btn w-full bg-[#657652] rounded-full px-[14px] py-[6px] flex items-center justify-center gap-1 hover:bg-[#576447] transition-colors"
               >
                 <ExportIcon color="#faf6f0" size={icoBtn} />
-                <span className="font-['Quicksand'] font-semibold text-[#faf6f0]" style={{ fontSize: isDesktop ? "16px" : isTablet ? "14px" : "12px", lineHeight: "18px" }}>Share</span>
+                <span className="font-['Quicksand'] font-semibold text-[#faf6f0]" style={{ fontSize: isDesktop ? "16px" : isTabletPortrait ? "18px" : isTablet ? "14px" : "13px", lineHeight: "18px" }}>Share</span>
               </button>
             </div>
             {/* Edit mode — absolutely overlaid on the same zone */}
@@ -1353,7 +1392,7 @@ export default function App() {
                   <path d="M1 3 C4 3 6 7 9 7" stroke="#657652" />
                   <path d="M8 6 L9 7 L8 8" stroke="#657652" />
                 </svg>
-                <span className="font-['Quicksand'] font-semibold text-[#657652]" style={{ fontSize: isDesktop ? "16px" : isTablet ? "14px" : "12px", lineHeight: "18px" }}>Shuffle</span>
+                <span className="font-['Quicksand'] font-semibold text-[#657652]" style={{ fontSize: isDesktop ? "16px" : isTabletPortrait ? "18px" : isTablet ? "14px" : "13px", lineHeight: "18px" }}>Shuffle</span>
               </button>
               <button
                 onClick={handleSaveChanges}
@@ -1364,18 +1403,18 @@ export default function App() {
                   <rect x="3" y="1" width="4" height="2.5" rx="0.3" stroke="#fefdf7" strokeWidth="0.9"/>
                   <rect x="2" y="5.5" width="6" height="3.5" rx="0.3" stroke="#fefdf7" strokeWidth="0.9"/>
                 </svg>
-                <span className="font-['Quicksand'] font-semibold text-[#fefdf7]" style={{ fontSize: isDesktop ? "16px" : isTablet ? "14px" : "12px", lineHeight: "18px" }}>Save changes</span>
+                <span className="font-['Quicksand'] font-semibold text-[#fefdf7]" style={{ fontSize: isDesktop ? "16px" : isTabletPortrait ? "18px" : isTablet ? "14px" : "13px", lineHeight: "18px" }}>Save changes</span>
               </button>
             </div>
           </div>
           {/* Secondary row — hidden in interactive mode to hold space */}
-          <div className="mt-4 flex items-center" style={{ visibility: mode === "editing" ? "visible" : "hidden", justifyContent: isDesktop ? "space-between" : "center", gap: isDesktop ? "20px" : "12px" }}>
+          <div className="flex items-center" style={{ marginTop: isTablet ? "16px" : "8px", paddingBottom: isTabletPortrait ? "28px" : isTablet ? "12px" : "0px", visibility: mode === "editing" ? "visible" : "hidden", justifyContent: isDesktop ? "space-between" : "center", gap: isDesktop ? "20px" : "12px" }}>
             <button
               onClick={() => setShowResetConfirm(true)}
               className="rounded-full px-[14px] py-[6px]"
               style={{ pointerEvents: mode === "editing" ? "auto" : "none", flex: isDesktop ? "1" : undefined, textAlign: isDesktop ? "center" : undefined }}
             >
-              <span className="font-['Quicksand'] font-semibold text-[#e36559]" style={{ fontSize: isDesktop ? "16px" : isTablet ? "14px" : "12px", lineHeight: "18px" }}>Reset card</span>
+              <span className="font-['Quicksand'] font-semibold text-[#e36559]" style={{ fontSize: isDesktop ? "16px" : isTabletPortrait ? "18px" : isTablet ? "14px" : "13px", lineHeight: "18px" }}>Reset card</span>
             </button>
             {!isDesktop && <span className="font-['Quicksand'] text-[12px] leading-[18px] text-[#f1e8d7] select-none">|</span>}
             <button
@@ -1383,7 +1422,7 @@ export default function App() {
               className="rounded-full px-[14px] py-[6px]"
               style={{ pointerEvents: mode === "editing" ? "auto" : "none", flex: isDesktop ? "1" : undefined, textAlign: isDesktop ? "center" : undefined }}
             >
-              <span className="font-['Quicksand'] font-semibold text-[#23617e]" style={{ fontSize: isDesktop ? "16px" : isTablet ? "14px" : "12px", lineHeight: "18px" }}>New card</span>
+              <span className="font-['Quicksand'] font-semibold text-[#23617e]" style={{ fontSize: isDesktop ? "16px" : isTabletPortrait ? "18px" : isTablet ? "14px" : "13px", lineHeight: "18px" }}>New card</span>
             </button>
           </div>
         </div>
@@ -1790,30 +1829,11 @@ export default function App() {
 
             {/* Title */}
             <div className="px-6 pt-6">
-              <h2 className="font-['Quicksand'] font-bold text-[#2b2b23] text-center" style={{ fontSize: mFontLg, lineHeight: "26px" }}>Clear all prompts?</h2>
+              <h2 className="font-['Quicksand'] font-bold text-[#2b2b23] text-center" style={{ fontSize: mFontLg, lineHeight: "26px" }}>Clear all prompts? 🗑️</h2>
             </div>
 
             {/* Content */}
-            <div className="px-6 pt-[26px] flex flex-col items-center gap-[15px]">
-              <div className="overflow-clip relative shrink-0" style={{ width: mIconSz, height: mIconSz }}>
-                <img alt="" className="absolute block inset-0 max-w-none size-full" src={trashIcon} />
-                {/* SVG vector overlay 1 — vertical stroke from Figma */}
-                <div className="absolute inset-[78.62%_87.21%_10.64%_12.79%]">
-                  <div className="absolute inset-[-20.94%_-1.58px]">
-                    <svg className="block size-full" fill="none" preserveAspectRatio="none" viewBox="0 0 3.15 10.672">
-                      <path d="M1.575 9.097V1.575" stroke="#E36559" strokeLinecap="round" strokeWidth="3.15" />
-                    </svg>
-                  </div>
-                </div>
-                {/* SVG vector overlay 2 — diagonal stroke from Figma */}
-                <div className="absolute inset-[7.27%_21.3%_85.14%_71.11%]">
-                  <div className="absolute inset-[-29.61%]">
-                    <svg className="block size-full" fill="none" preserveAspectRatio="none" viewBox="0 0 8.4688 8.46878">
-                      <path d="M6.8938 6.89378L1.575 1.575" stroke="#E36559" strokeLinecap="round" strokeWidth="3.15" />
-                    </svg>
-                  </div>
-                </div>
-              </div>
+            <div className="px-6 pt-[15px]">
               <p className="font-['Quicksand'] font-semibold text-[#2b2b23] text-center" style={{ fontSize: mFontMd, lineHeight: "20px" }}>
                 This will permanently erase your grid. <span className="font-bold">All progress will be lost.</span>
               </p>
@@ -1866,14 +1886,11 @@ export default function App() {
 
             {/* Title */}
             <div className="px-6 pt-6">
-              <h2 className="font-['Quicksand'] font-bold text-[#2b2b23] text-center" style={{ fontSize: mFontLg, lineHeight: "26px" }}>Generate a new card?</h2>
+              <h2 className="font-['Quicksand'] font-bold text-[#2b2b23] text-center" style={{ fontSize: mFontLg, lineHeight: "26px" }}>Generate a new card? 🪄</h2>
             </div>
 
-            {/* Magic wand + body text */}
-            <div className="px-6 pt-5 flex flex-col items-center gap-[15px]">
-              <div className="relative shrink-0" style={{ width: mIconSz, height: mIconSz }}>
-                <img alt="magic wand" className="absolute inset-0 max-w-none object-cover pointer-events-none size-full" src={magicWandImage} />
-              </div>
+            {/* Body text */}
+            <div className="px-6 pt-[15px]">
               <p className="font-['Quicksand'] font-semibold text-[#2b2b23] text-center" style={{ fontSize: mFontMd, lineHeight: "20px" }}>
                 {"This will replace your current board with 24 randomly selected resolutions. "}
                 <span className="font-bold">All progress will be lost.</span>
@@ -1924,21 +1941,11 @@ export default function App() {
 
             {/* Title */}
             <div className="px-6 pt-6">
-              <h2 className="font-['Quicksand'] font-bold text-[#2b2b23] text-center" style={{ fontSize: mFontLg, lineHeight: "26px" }}>Incomplete bingo card</h2>
+              <h2 className="font-['Quicksand'] font-bold text-[#2b2b23] text-center" style={{ fontSize: mFontLg, lineHeight: "26px" }}>Incomplete bingo card 🛠️</h2>
             </div>
 
             {/* Content */}
-            <div className="px-6 pt-[26px] flex flex-col items-center gap-[15px]">
-              <svg style={{ width: mIconSz, height: mIconSz }} viewBox="0 0 70 70" fill="none" strokeLinecap="round" strokeLinejoin="round">
-                {/* Main arc — 240° clockwise from 10:30 (315°) to 6:30 (195°), r=26, center (35,35) */}
-                <path d="M17 17 A26 26 0 1 1 28 60" stroke="#F4D892" strokeWidth="4.5"/>
-                {/* Small arc 1 — lower-left, 217°→242° */}
-                <path d="M19 56 A26 26 0 0 1 12 47" stroke="#F4D892" strokeWidth="4.5"/>
-                {/* Small arc 2 — left, 260°→285° */}
-                <path d="M9 40 A26 26 0 0 1 10 28" stroke="#F4D892" strokeWidth="4.5"/>
-                {/* Checkmark — smaller, centered, thicker */}
-                <path d="M24 35 L31 43 L46 26" stroke="#F4D892" strokeWidth="6"/>
-              </svg>
+            <div className="px-6 pt-[15px]">
               <p className="font-['Quicksand'] font-semibold text-[#2b2b23] text-center" style={{ fontSize: mFontMd, lineHeight: "20px" }}>
                 You still have some empty squares! Please fill in all the prompts before saving.
               </p>
@@ -1978,15 +1985,12 @@ export default function App() {
             </button>
 
             <div className="px-6 pt-6">
-              <h2 className="font-['Quicksand'] font-bold text-[#2b2b23] text-center" style={{ fontSize: mFontLg, lineHeight: "26px" }}>Happy New Year!</h2>
+              <h2 className="font-['Quicksand'] font-bold text-[#2b2b23] text-center" style={{ fontSize: mFontLg, lineHeight: "26px" }}>Happy New Year! 🥂</h2>
             </div>
 
-            <div className="px-6 pt-[15px] flex flex-col items-center gap-[15px]">
-              <div className="relative shrink-0" style={{ width: mIconSz, height: mIconSz }}>
-                <img alt="cheers" className="absolute inset-0 max-w-none object-cover pointer-events-none size-full" src={cheers1Image} />
-              </div>
+            <div className="px-6 pt-[15px]">
               <p className="font-['Quicksand'] font-semibold text-[#2b2b23] text-center" style={{ fontSize: mFontMd, lineHeight: "20px" }}>
-                {"We'll save a snapshot of your old board to your device, then your new grid is ready to go!"}
+                {"We've saved a snapshot of your old board to your device, and your new grid is ready to go!"}
               </p>
             </div>
 
@@ -1997,6 +2001,47 @@ export default function App() {
                 style={{ fontSize: mFontMd, lineHeight: "20px" }}
               >
                 {"Let's Begin!"}
+              </button>
+            </div>
+          </motion.div>
+        </div>
+      )}
+
+      {/* Line Complete Modal */}
+      {showLineComplete && (
+        <div
+          className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50"
+          onClick={() => setShowLineComplete(false)}
+        >
+          <motion.div
+            className="bg-white rounded-[14px] w-full relative"
+            style={{ maxWidth: mMaxW }}
+            onClick={(e) => e.stopPropagation()}
+            initial={{ scale: 0.88, opacity: 0, y: 12 }}
+            animate={{ scale: 1, opacity: 1, y: 0 }}
+            transition={{ type: "spring", stiffness: 380, damping: 20, mass: 0.7 }}
+          >
+            <button
+              onClick={() => setShowLineComplete(false)}
+              className="absolute top-[13px] right-[13px] text-[#c0b05b] hover:opacity-70 transition-opacity w-4 h-4"
+            >
+              <CloseIcon size={icoClose} />
+            </button>
+            <div className="px-6 pt-6">
+              <h2 className="font-['Quicksand'] font-bold text-[#2b2b23] text-center" style={{ fontSize: mFontLg, lineHeight: "26px" }}>{"That's a Bingo! ✨"}</h2>
+            </div>
+            <div className="px-6 pt-[15px]">
+              <p className="font-['Quicksand'] font-semibold text-[#2b2b23] text-center" style={{ fontSize: mFontMd, lineHeight: "20px" }}>
+                {"Great progress! Let's see if you can turn this line into a fully stamped board."}
+              </p>
+            </div>
+            <div className="px-6 pt-[20px] pb-[24px]">
+              <button
+                onClick={() => setShowLineComplete(false)}
+                className="w-full bg-[#657652] rounded-full px-[14px] py-[6px] font-['Quicksand'] font-semibold text-[#faf6f0] hover:bg-[#576447] transition-colors"
+                style={{ fontSize: mFontMd, lineHeight: "20px" }}
+              >
+                Challenge Accepted
               </button>
             </div>
           </motion.div>
@@ -2029,14 +2074,11 @@ export default function App() {
 
             {/* Title */}
             <div className="px-6 pt-6">
-              <h2 className="font-['Quicksand'] font-bold text-[#2b2b23] text-center" style={{ fontSize: mFontLg, lineHeight: "26px" }}>BINGO! Full House!</h2>
+              <h2 className="font-['Quicksand'] font-bold text-[#2b2b23] text-center" style={{ fontSize: mFontLg, lineHeight: "26px" }}>Full House! 🎉</h2>
             </div>
 
-            {/* Medal + body text */}
-            <div className="px-6 pt-[26px] flex flex-col items-center gap-[15px]">
-              <div className="relative shrink-0" style={{ width: mIconSz, height: mIconSz }}>
-                <img alt="medal" className="absolute inset-0 max-w-none object-cover pointer-events-none size-full" src={medalImage} />
-              </div>
+            {/* Body text */}
+            <div className="px-6 pt-[15px]">
               <p className="font-['Quicksand'] font-semibold text-[#2b2b23] text-center" style={{ fontSize: mFontMd, lineHeight: "20px" }}>
                 You did it! You crushed every single resolution on your board.
               </p>
