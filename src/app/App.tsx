@@ -597,6 +597,16 @@ export default function App() {
   if (!initRef.current) initRef.current = getInitialAppState();
   const init = initRef.current;
 
+  useEffect(() => {
+    let link = document.querySelector<HTMLLinkElement>("link[rel~='icon']");
+    if (!link) {
+      link = document.createElement("link");
+      link.rel = "icon";
+      document.head.appendChild(link);
+    }
+    link.href = sparkleImage;
+  }, []);
+
   const rootRef = useRef<HTMLDivElement>(null);
   const [isTablet, setIsTablet] = useState(false);
   const [isDesktop, setIsDesktop] = useState(true);
