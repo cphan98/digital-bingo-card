@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from "react";
 import magicWandImage from "../imports/GenerateNewCard/af03c8e7e08139d7be443b3d19eba32723da91d6.png";
-import { motion } from "motion/react";
+import { motion, AnimatePresence } from "motion/react";
 import { jsPDF } from "jspdf";
 import svgPaths from "../imports/InteractiveMode/svg-5r48ucxh72";
 import sparkleImage from "../imports/stars-1.png";
@@ -629,6 +629,8 @@ export default function App() {
   const [resolutions, setResolutions] = useState<string[]>(() => init.resolutions);
   const [editingIndex, setEditingIndex] = useState<number | null>(null);
   const [editValue, setEditValue] = useState("");
+  const [editCompleted, setEditCompleted] = useState(false);
+  const [editDate, setEditDate] = useState("");
   const [completed, setCompleted] = useState<Map<number, CompletedSquare>>(() => init.completed);
   const [showExportModal, setShowExportModal] = useState(false);
   const [showResetConfirm, setShowResetConfirm] = useState(false);
@@ -668,11 +670,24 @@ export default function App() {
     } catch {}
   }, [completed]);
 
+  const todayInputStr = () => {
+    const now = new Date();
+    return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`;
+  };
+
+  const stampDateToInput = (dateStr: string): string => {
+    const [dd, mm, yy] = dateStr.split("/");
+    return `20${yy}-${mm}-${dd}`;
+  };
+
   const handleCellClick = (index: number) => {
     if (mode === "editing") {
       if (index === 12) return;
       setEditingIndex(index);
       setEditValue(resolutions[index]);
+      const existing = completed.get(index);
+      setEditCompleted(!!existing);
+      setEditDate(existing ? stampDateToInput(existing.date) : todayInputStr());
     } else {
       if (index === 12) return;
       toggleComplete(index);
@@ -684,6 +699,19 @@ export default function App() {
       const newResolutions = [...resolutions];
       newResolutions[editingIndex] = editValue;
       setResolutions(newResolutions);
+
+      const newCompleted = new Map(completed);
+      if (editCompleted) {
+        const [year, month, day] = editDate.split("-");
+        const dateString = `${day}/${month}/${year.slice(-2)}`;
+        const existing = newCompleted.get(editingIndex);
+        const rotation = existing ? existing.rotation : Math.random() * 30 - 15;
+        newCompleted.set(editingIndex, { date: dateString, rotation });
+      } else {
+        newCompleted.delete(editingIndex);
+      }
+      setCompleted(newCompleted);
+
       setEditingIndex(null);
     }
   };
@@ -1481,6 +1509,71 @@ export default function App() {
               <span className="font-['Quicksand'] font-semibold text-[#94bebb]" style={{ fontSize: mFontSm, lineHeight: "18px" }}>
                 {editValue.length}/50 characters
               </span>
+            </div>
+
+            {/* Completion question */}
+            <div className="mb-[16px]">
+              <p className="font-['Quicksand'] font-semibold text-[#2b2b23] mb-[10px]" style={{ fontSize: mFontMd, lineHeight: "20px" }}>
+                Have you completed this resolution?
+              </p>
+              <div className="flex gap-[8px]">
+                <button
+                  onClick={() => setEditCompleted(false)}
+                  className="flex-1 py-[7px] rounded-full border-[1.5px] font-['Quicksand'] font-semibold transition-colors"
+                  style={{
+                    fontSize: mFontMd,
+                    lineHeight: "20px",
+                    borderColor: !editCompleted ? "#e36559" : "#f1e8d7",
+                    color: !editCompleted ? "#e36559" : "#94bebb",
+                    background: !editCompleted ? "#fff5f4" : "transparent",
+                  }}
+                >
+                  Not yet
+                </button>
+                <button
+                  onClick={() => {
+                    setEditCompleted(true);
+                    if (!editDate) setEditDate(todayInputStr());
+                  }}
+                  className="flex-1 py-[7px] rounded-full border-[1.5px] font-['Quicksand'] font-semibold transition-colors"
+                  style={{
+                    fontSize: mFontMd,
+                    lineHeight: "20px",
+                    borderColor: editCompleted ? "#657652" : "#f1e8d7",
+                    color: editCompleted ? "#657652" : "#94bebb",
+                    background: editCompleted ? "#f3f7f0" : "transparent",
+                  }}
+                >
+                  Yes!
+                </button>
+              </div>
+
+              <AnimatePresence>
+                {editCompleted && (
+                  <motion.div
+                    initial={{ height: 0, opacity: 0 }}
+                    animate={{ height: "auto", opacity: 1 }}
+                    exit={{ height: 0, opacity: 0 }}
+                    transition={{ duration: 0.2, ease: "easeInOut" }}
+                    className="overflow-hidden"
+                  >
+                    <div className="pt-[12px]">
+                      <label className="block font-['Quicksand'] font-semibold text-[#2b2b23] mb-[6px]" style={{ fontSize: mFontSm, lineHeight: "18px" }}>
+                        Completion date
+                      </label>
+                      <input
+                        type="date"
+                        value={editDate}
+                        min={`${currentYear}-01-01`}
+                        max={todayInputStr()}
+                        onChange={(e) => setEditDate(e.target.value)}
+                        className="w-full px-[14px] py-[9px] font-['Quicksand'] font-medium text-[#2b2b23] border-[1.5px] border-[#f1e8d7] rounded-[10px] focus:border-[#657652] focus:outline-none"
+                        style={{ fontSize: mFontMd, lineHeight: "20px" }}
+                      />
+                    </div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
             </div>
 
             <div className="flex items-center justify-between">
