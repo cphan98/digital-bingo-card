@@ -1487,112 +1487,113 @@ export default function App() {
               <CloseIcon size={icoClose} />
             </button>
 
-            <h2 className="font-['Quicksand'] font-bold text-[#2b2b23] text-center mb-[16px]" style={{ fontSize: mFontLg, lineHeight: "26px" }}>Edit Resolution</h2>
+            <div className="flex flex-col gap-[10px]">
+              <h2 className="font-['Quicksand'] font-bold text-[#2b2b23] text-center" style={{ fontSize: mFontLg, lineHeight: "26px" }}>Edit Resolution</h2>
 
-            <div className="flex flex-col gap-[5px] items-end mb-[16px]">
-              <textarea
-                value={editValue}
-                onChange={(e) => setEditValue(e.target.value.slice(0, 50))}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter" && !e.shiftKey) {
-                    e.preventDefault();
-                    handleSave();
-                  } else if (e.key === "Escape") {
-                    setEditingIndex(null);
-                  }
-                }}
-                autoFocus
-                className="w-full h-[120px] px-[16px] py-[12px] font-['Quicksand'] font-medium text-[#2b2b23] border-[1.5px] border-[#f1e8d7] rounded-[10px] focus:border-[#657652] focus:outline-none resize-none"
-                style={{ fontSize: mFontLg, lineHeight: "26px" }}
-                placeholder="Enter your resolution..."
-              />
-              <span className="font-['Quicksand'] font-semibold text-[#94bebb]" style={{ fontSize: mFontSm, lineHeight: "18px" }}>
-                {editValue.length}/50 characters
-              </span>
-            </div>
-
-            {/* Completion question */}
-            <div className="mb-[16px]">
-              <p className="font-['Quicksand'] font-semibold text-[#2b2b23] mb-[10px]" style={{ fontSize: mFontMd, lineHeight: "20px" }}>
-                Have you completed this resolution?
-              </p>
-              <div className="flex gap-[8px]">
-                <button
-                  onClick={() => setEditCompleted(false)}
-                  className="flex-1 py-[7px] rounded-full border-[1.5px] font-['Quicksand'] font-semibold transition-colors"
-                  style={{
-                    fontSize: mFontMd,
-                    lineHeight: "20px",
-                    borderColor: !editCompleted ? "#e36559" : "#f1e8d7",
-                    color: !editCompleted ? "#e36559" : "#94bebb",
-                    background: !editCompleted ? "#fff5f4" : "transparent",
+              {/* Textarea + char count */}
+              <div className="flex flex-col gap-[5px] items-end">
+                <textarea
+                  value={editValue}
+                  onChange={(e) => setEditValue(e.target.value.slice(0, 50))}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" && !e.shiftKey) {
+                      e.preventDefault();
+                      handleSave();
+                    } else if (e.key === "Escape") {
+                      setEditingIndex(null);
+                    }
                   }}
-                >
-                  Not yet
-                </button>
-                <button
-                  onClick={() => {
-                    setEditCompleted(true);
-                    if (!editDate) setEditDate(todayInputStr());
-                  }}
-                  className="flex-1 py-[7px] rounded-full border-[1.5px] font-['Quicksand'] font-semibold transition-colors"
-                  style={{
-                    fontSize: mFontMd,
-                    lineHeight: "20px",
-                    borderColor: editCompleted ? "#657652" : "#f1e8d7",
-                    color: editCompleted ? "#657652" : "#94bebb",
-                    background: editCompleted ? "#f3f7f0" : "transparent",
-                  }}
-                >
-                  Yes!
-                </button>
+                  autoFocus
+                  className="w-full h-[120px] px-[16px] py-[12px] font-['Quicksand'] font-medium text-[#2b2b23] border-[1.5px] border-[#f1e8d7] rounded-[10px] focus:border-[#657652] focus:outline-none resize-none"
+                  style={{ fontSize: mFontLg, lineHeight: "26px" }}
+                  placeholder="Enter your resolution..."
+                />
+                <span className="font-['Quicksand'] font-semibold text-[#94bebb]" style={{ fontSize: mFontSm, lineHeight: "18px" }}>
+                  {editValue.length}/50 characters
+                </span>
               </div>
 
-              <AnimatePresence>
-                {editCompleted && (
-                  <motion.div
-                    initial={{ height: 0, opacity: 0 }}
-                    animate={{ height: "auto", opacity: 1 }}
-                    exit={{ height: 0, opacity: 0 }}
-                    transition={{ duration: 0.2, ease: "easeInOut" }}
-                    className="overflow-hidden"
-                  >
-                    <div className="pt-[12px]">
-                      <label className="block font-['Quicksand'] font-semibold text-[#2b2b23] mb-[6px]" style={{ fontSize: mFontSm, lineHeight: "18px" }}>
-                        Completion date
-                      </label>
-                      <input
-                        type="date"
-                        value={editDate}
-                        min={`${currentYear}-01-01`}
-                        max={todayInputStr()}
-                        onChange={(e) => setEditDate(e.target.value)}
-                        className="w-full px-[14px] py-[9px] font-['Quicksand'] font-medium text-[#2b2b23] border-[1.5px] border-[#f1e8d7] rounded-[10px] focus:border-[#657652] focus:outline-none"
-                        style={{ fontSize: mFontMd, lineHeight: "20px" }}
-                      />
-                    </div>
-                  </motion.div>
-                )}
-              </AnimatePresence>
-            </div>
+              {/* Question + date grouped with gap-[20px] between them (Frame3) */}
+              <div className="flex flex-col gap-0">
+                {/* Completion question (Frame2) */}
+                <div className="flex flex-col gap-[10px]">
+                  <p className="font-['Quicksand'] font-semibold text-[#2b2b23]" style={{ fontSize: mFontMd, lineHeight: "20px" }}>
+                    Have you completed this resolution?
+                  </p>
+                  <div className="flex gap-[10px]">
+                    <button
+                      onClick={() => setEditCompleted(false)}
+                      className="flex-1 py-[6px] rounded-full border font-['Quicksand'] font-semibold transition-colors"
+                      style={{
+                        fontSize: mFontMd,
+                        lineHeight: "20px",
+                        borderColor: !editCompleted ? "#e89c73" : "#f1e8d7",
+                        color: !editCompleted ? "#e89c73" : "#94bebb",
+                        background: !editCompleted ? "rgba(242,182,163,0.15)" : "transparent",
+                      }}
+                    >
+                      Not yet
+                    </button>
+                    <button
+                      onClick={() => {
+                        setEditCompleted(true);
+                        if (!editDate) setEditDate(todayInputStr());
+                      }}
+                      className="flex-1 py-[6px] rounded-full border font-['Quicksand'] font-semibold transition-colors"
+                      style={{
+                        fontSize: mFontMd,
+                        lineHeight: "20px",
+                        borderColor: editCompleted ? "#657652" : "#f1e8d7",
+                        color: editCompleted ? "#657652" : "#94bebb",
+                        background: editCompleted ? "rgba(101,118,82,0.15)" : "transparent",
+                      }}
+                    >
+                      Yes!
+                    </button>
+                  </div>
+                </div>
 
-            <div className="flex items-center justify-between">
-              <button
-                onClick={() => setEditingIndex(null)}
-                className="px-[14px] py-[6px] font-['Quicksand'] font-semibold text-[#c0b05b]"
-                style={{ fontSize: mFontMd, lineHeight: "20px" }}
-              >
-                Cancel
-              </button>
-              <button
-                onClick={handleSave}
-                className="bg-[#657652] rounded-full px-[14px] py-[6px] flex items-center gap-1 hover:bg-[#576447] transition-colors"
-              >
-                <svg className="size-[11px] shrink-0" viewBox="0 0 11 11" fill="none">
-                  <path d="M1.5 5.5L4.5 8.5L9.5 2.5" stroke="#fefdf7" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"/>
-                </svg>
-                <span className="font-['Quicksand'] font-semibold text-[#fefdf7]" style={{ fontSize: mFontMd, lineHeight: "20px" }}>Done</span>
-              </button>
+                {/* Completion date (Frame4) — animates in with 20px gap above */}
+                <AnimatePresence>
+                  {editCompleted && (
+                    <motion.div
+                      initial={{ height: 0, opacity: 0 }}
+                      animate={{ height: "auto", opacity: 1 }}
+                      exit={{ height: 0, opacity: 0 }}
+                      transition={{ duration: 0.2, ease: "easeInOut" }}
+                      className="overflow-hidden"
+                    >
+                      <div className="flex flex-col gap-[10px] mt-[20px]">
+                        <p className="font-['Quicksand'] font-semibold text-[#2b2b23]" style={{ fontSize: mFontMd, lineHeight: "20px" }}>
+                          Completion date
+                        </p>
+                        <input
+                          type="date"
+                          value={editDate}
+                          min={`${currentYear}-01-01`}
+                          max={todayInputStr()}
+                          onChange={(e) => setEditDate(e.target.value)}
+                          className="w-full px-[10px] py-[4px] font-['Quicksand'] font-medium text-[#2b2b23] border-[1.5px] border-[#f1e8d7] rounded-[10px] focus:border-[#657652] focus:outline-none"
+                          style={{ fontSize: mFontSm, lineHeight: "26px" }}
+                        />
+                      </div>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+              </div>
+
+              {/* Full-width Done button */}
+              <div className="pt-[20px]">
+                <button
+                  onClick={handleSave}
+                  className="w-full bg-[#657652] rounded-full px-[14px] py-[6px] flex items-center justify-center gap-[4px] hover:bg-[#576447] transition-colors"
+                >
+                  <svg className="size-[11px] shrink-0" viewBox="0 0 11 11" fill="none">
+                    <path d="M1.5 5.5L4.5 8.5L9.5 2.5" stroke="#fefdf7" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"/>
+                  </svg>
+                  <span className="font-['Quicksand'] font-semibold text-[#fefdf7]" style={{ fontSize: mFontMd, lineHeight: "20px" }}>Done</span>
+                </button>
+              </div>
             </div>
           </motion.div>
         </div>
