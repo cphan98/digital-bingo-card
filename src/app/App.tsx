@@ -1314,10 +1314,10 @@ export default function App() {
   const icoBtn   = isDesktop ? 14 : isTablet ? 12 : 10;
   const icoClose = isDesktop ? 20 : isTablet ? 18 : 16;
   // Responsive modal sizing helpers
-  const mFontSm  = isDesktop ? "14px" : isTabletPortrait ? "16px" : isTablet ? "12px" : "10px";
-  const mFontMd  = isDesktop ? "16px" : isTabletPortrait ? "18px" : isTablet ? "14px" : "12px";
-  const mFontLg  = isDesktop ? "20px" : isTabletPortrait ? "22px" : isTablet ? "18px" : "16px";
-  const mMaxW    = isDesktop ? "320px" : isTabletPortrait ? "360px" : isTablet ? "280px" : "248px";
+  const mFontSm  = isDesktop ? "14px" : isTabletPortrait ? "16px" : isTablet ? "12px" : "13px";
+  const mFontMd  = isDesktop ? "16px" : isTabletPortrait ? "18px" : isTablet ? "14px" : "15px";
+  const mFontLg  = isDesktop ? "20px" : isTabletPortrait ? "22px" : isTablet ? "18px" : "18px";
+  const mMaxW    = isDesktop ? "320px" : isTabletPortrait ? "360px" : isTablet ? "280px" : "min(320px, calc(100vw - 32px))";
   const mIconSz  = isDesktop ? "90px"  : isTabletPortrait ? "100px" : isTablet ? "80px"  : "70px";
   const mPadding = isDesktop ? "32px"  : isTablet ? "28px"  : "24px";
 
@@ -1573,8 +1573,8 @@ export default function App() {
                           min={`${currentYear}-01-01`}
                           max={todayInputStr()}
                           onChange={(e) => setEditDate(e.target.value)}
-                          className="w-full px-[10px] py-[4px] font-['Quicksand'] font-medium text-[#2b2b23] border-[1.5px] border-[#f1e8d7] rounded-[10px] focus:border-[#657652] focus:outline-none"
-                          style={{ fontSize: mFontSm, lineHeight: "26px" }}
+                          className="block w-full min-w-0 px-[10px] py-[4px] font-['Quicksand'] font-medium text-[#2b2b23] border-[1.5px] border-[#f1e8d7] rounded-[10px] focus:border-[#657652] focus:outline-none"
+                          style={{ fontSize: mFontSm, lineHeight: "26px", boxSizing: "border-box" }}
                         />
                       </div>
                     </motion.div>
